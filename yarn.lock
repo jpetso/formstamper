@@ -4776,6 +4776,11 @@ node-gyp@^3.4.0, node-gyp@^3.8.0:
     tar "^2.0.0"
     which "1"
 
+node-pdftk@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/node-pdftk/-/node-pdftk-2.0.2.tgz#4e236123dcf5dc1d8473e5924ae446d6c6859d4e"
+  integrity sha512-ouNYoWd0gzI/ZPt/odQ5JIU4SeRUJTg5dEnCLG88lKJAgFJjn0dHotg563hZTOUyWLP6/n6YBfkW92CvpM5QOg==
+
 node-pre-gyp@^0.11.0:
   version "0.11.0"
   resolved "https://registry.yarnpkg.com/node-pre-gyp/-/node-pre-gyp-0.11.0.tgz#db1f33215272f692cd38f03238e3e9b47c5dd054"

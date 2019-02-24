@@ -52,6 +52,7 @@
     "electron-compile": "^6.4.4",
     "electron-devtools-installer": "^2.1.0",
     "electron-squirrel-startup": "^1.0.0",
+    "node-pdftk": "^2.0.2",
     "pdfjs-dist": "^2.0.943",
     "react": "^15.4.1",
     "react-dom": "^15.4.1",

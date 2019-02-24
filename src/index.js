@@ -2,7 +2,9 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
 import { enableLiveReload } from 'electron-compile'
 import fs from 'fs'
+import parse from 'csv-parse'
 import pdfjsLib from 'pdfjs-dist'
+import pdftk from 'node-pdftk'
 import Canvas from 'canvas'
 import assert from 'assert'
 
@@ -61,8 +63,60 @@ app.on('activate', () => {
   }
 });
 
-ipcMain.on('load-pdf', (event, filename) => {
+ipcMain.on('generate-pdfs', (event, pdfTemplateFilename, outputPrefixTemplate, fieldMappings) => {
+  field_mappings = [
+    {
+      field_name: 'TR_NUMBER',
+      mapping: {
+        source: 'table',
+        column_name: 'Tax Receipt No.',
+      }
+    },
+    {
+      field_name: 'PROVINCE',
+      mapping: {
+        source: 'text',
+        text: 'ON',
+      }
+    }
+  ];
+
+  for (const row in rows) {
+    /*pdftk
+      .input(pdfTemplateFilename)
+      .fillForm({
+        TR_NUMBER: 'data',
+        PROVINCE: 'ON',
+        the: 'form',
+      })
+      .flatten()
+      .output()
+      .then(buffer => {
+        // Do stuff with the output buffer
+        // Store it as pdf in output_dir
+      })
+      .catch(err => {
+        // handle errors
+      });*/
+  }
+})
+
+ipcMain.on('load-pdf-template', (event, filename) => {
   console.log(filename)
+
+  event.sender.send('pdf-fields-available', filename, [
+    {
+      fieldName: 'TR_NUMBER',
+      fieldType: 'Text',
+      fieldValue: '',
+    },
+    {
+      fieldName: 'PROVINCE',
+      fieldType: 'Text',
+      fieldValue: 'ON',
+    },
+  ])
+
   const rawData = new Uint8Array(fs.readFileSync(filename));
   const loadingTask = pdfjsLib.getDocument(rawData);
 
@@ -122,7 +176,7 @@ ipcMain.on('load-pdf', (event, filename) => {
       renderTask.promise.then(function() {
         // Convert the canvas to an image buffer.
         const image = canvasAndContext.canvas.toDataURL('image/png')
-        event.sender.send('update-pdf-preview', image)
+        event.sender.send('pdf-preview-updated', filename, image)
         /*const buffer = canvasAndContext.canvas.toBuffer()
         fs.writeFile('output.pdf', buffer, function (error) {
           if (error) {
@@ -137,6 +191,25 @@ ipcMain.on('load-pdf', (event, filename) => {
   }).catch(function(reason) {
     console.log(reason);
   })
+})
+
+ipcMain.on('load-csv', (event, filename) => {
+  let context = this
+  let rows = []
+  let filestream = fs.createReadStream(filename)
+    .pipe(parse())
+    .on('data', function(row) {
+      rows.push(row)
+    })
+    .on('error', function(err) {
+      dialog.showErrorBox("CSV loading error", err.message);
+    })
+    .on('end', function() {
+      const fields = rows[0].map((field) => ({
+        fieldName: field
+      }))
+      event.sender.send('csv-fields-available', filename, fields)
+    })
 })
 
 // In this file you can include the rest of your app's specific main process

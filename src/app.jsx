@@ -1,7 +1,5 @@
 import React from 'react'
 import { remote, ipcRenderer } from 'electron'
-import parse from 'csv-parse'
-import fs from 'fs'
 
 const { dialog } = remote
 
@@ -28,14 +26,16 @@ class VLAvailableFields extends React.Component {
     let styles = {}
     let fields = []
 
-    if (this.props.csv.length <= 0) {
+    if (this.props.pdfFields.length <= 0 && this.props.csvFields.length <= 0) {
       styles.visibility = "hidden";
     }
     else {
-      //fields = this.props.csv[0].map((field) =>
-      fields = require('module').globalPaths.map((field) =>
-        <li>{field}</li>
+      fields = this.props.pdfFields.map((field) =>
+        <li key={field.fieldName}>PDF: {field.fieldName}</li>
       )
+      fields = fields.concat(this.props.csvFields.map((field) =>
+        <li key={field.fieldName}>CSV: {field.fieldName}</li>
+      ))
     }
 
     return (
@@ -54,41 +54,22 @@ export default class App extends React.Component {
     this.onLoadCSVFile = this.onLoadCSVFile.bind(this)
     this.onLoadPDFFile = this.onLoadPDFFile.bind(this)
     this.state = {
-      csv: [],
-      preview_src: ""
+      pdfFields: [],
+      csvFields: [],
+      previewSrc: ""
     }
 
-    ipcRenderer.on('update-pdf-preview', (event, imgsrc) => {
-      this.setState({ preview_src: imgsrc })
+    ipcRenderer.on('pdf-fields-available', (event, pdfTemplateFilename, fields) => {
+      this.setState({ pdfFields: fields })
     })
-  }
 
-  onLoadCSVFile() {
-    const filenames = dialog.showOpenDialog({
-      properties: ['openFile'],
-      filters: [
-        { name: 'CSV files', extensions: ['csv'] },
-        { name: 'All Files', extensions: ['*'] }
-      ]
+    ipcRenderer.on('csv-fields-available', (event, csvFilename, fields) => {
+      this.setState({ csvFields: fields })
     })
-    if (!Array.isArray(filenames) || filenames.length !== 1) {
-      return
-    }
 
-    let context = this
-    let rows = []
-    let filestream = fs.createReadStream(filenames[0])
-      .pipe(parse())
-      .on('data', function(row) {
-        console.log(row)
-        rows.push(row)
-      })
-      .on('error', function(err) {
-        dialog.showErrorBox("CSV loading error", err.message);
-      })
-      .on('end', function() {
-        context.setState({ csv: rows })
-      })
+    ipcRenderer.on('pdf-preview-updated', (event, pdfTemplateFilename, imgsrc) => {
+      this.setState({ previewSrc: imgsrc })
+    })
   }
 
   onLoadPDFFile() {
@@ -104,18 +85,33 @@ export default class App extends React.Component {
     }
 
     const canvas = document.getElementById('pdf-preview');
-    ipcRenderer.send('load-pdf', filenames[0])
+    ipcRenderer.send('load-pdf-template', filenames[0])
+  }
+
+  onLoadCSVFile() {
+    const filenames = dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'CSV files', extensions: ['csv'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })
+    if (!Array.isArray(filenames) || filenames.length !== 1) {
+      return
+    }
+
+    ipcRenderer.send('load-csv', filenames[0])
   }
 
   render() {
     return (<div>
       <VLHeader />
-      <VLButton value={"Load PDF with form fields"} onClick={this.onLoadPDFFile} />
+      <VLButton value={"Load PDF template"} onClick={this.onLoadPDFFile} />
       <VLButton value={"Load CSV table"} onClick={this.onLoadCSVFile} />
       <VLButton value={"Generate PDFs in folder"} />
 
-      <VLAvailableFields csv={this.state.csv} />
-      <img id="pdf-preview" src={this.state.preview_src} />
+      <VLAvailableFields pdfFields={this.state.pdfFields} csvFields={this.state.csvFields} />
+      <img id="pdf-preview" src={this.state.previewSrc} />
     </div>);
   }
 }
