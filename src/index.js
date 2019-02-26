@@ -66,14 +66,14 @@ app.on('activate', () => {
 ipcMain.on('generate-pdfs', (event, pdfTemplateFilename, outputPrefixTemplate, fieldMappings) => {
   field_mappings = [
     {
-      field_name: 'TR_NUMBER',
+      fieldName: 'TR_NUMBER',
       mapping: {
         source: 'table',
-        column_name: 'Tax Receipt No.',
+        columnName: 'Tax Receipt No.',
       }
     },
     {
-      field_name: 'PROVINCE',
+      fieldName: 'PROVINCE',
       mapping: {
         source: 'text',
         text: 'ON',
