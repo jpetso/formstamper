@@ -1,60 +1,14 @@
 import React from 'react'
 import { remote, ipcRenderer } from 'electron'
+import VLHeader from './VLHeader'
+import VLButton from './VLButton'
+import VLAvailableFields from './VLAvailableFields'
 
 const { dialog } = remote
 const EMPTY = "<empty>"
 const TABLE = "table"
 const TEXT = "text"
-
-class VLHeader extends React.Component {
-  render() {
-    return (
-      <h2>Filling PDF form fields</h2>
-    );
-  }
-}
-
-class VLButton extends React.Component {
-  render() {
-    return (
-      <button className="vl-button" onClick={this.props.onClick}>
-        {this.props.value}
-      </button>
-    );
-  }
-}
-
-class VLAvailableFields extends React.Component {
-  render() {
-    const options = this.props.csvFields.map(csvElement =>
-      <option value={csvElement.fieldName}>{csvElement.fieldName}</option>)
-    const csvFieldsDisplay = this.props.csvFields.length === 0 ? [] :
-      this.props.pdfFields.map(pdfElement =>
-        <select onChange={event =>
-          this.props.fieldMappingHandler(
-            event.target.value,
-            pdfElement.fieldName,
-            TABLE)}>
-          <option value={EMPTY}>{EMPTY}</option>
-          {options}
-        </select>)
-    const pdfFieldsDisplay = this.props.pdfFields.map(pdfElement =>
-      <div>{pdfElement.fieldName}</div>)
-
-    return (
-      <div>
-        <div>{pdfFieldsDisplay.length > 0 ?
-          pdfFieldsDisplay :
-          <div style={{"fontSize": "20em"}}>1</div>}
-        </div>
-        <div>{csvFieldsDisplay.length > 0 ?
-          csvFieldsDisplay :
-          <div style={{"fontSize": "20em"}}>2</div>}
-        </div>
-      </div>
-    );
-  }
-}
+const WIDTH_OF_COLUMN = '15em'
 
 export default class App extends React.Component {
   constructor(props) {
@@ -62,7 +16,7 @@ export default class App extends React.Component {
     this.onLoadCSVFile = this.onLoadCSVFile.bind(this)
     this.onLoadPDFFile = this.onLoadPDFFile.bind(this)
     this.resetFieldMappings = this.resetFieldMappings.bind(this)
-    this.fieldMappingHandler = this.fieldMappingHandler.bind(this)
+    this.onFieldMappingChange = this.onFieldMappingChange.bind(this)
     this.state = {
       pdfFields: [],
       csvFields: [],
@@ -91,7 +45,7 @@ export default class App extends React.Component {
     }
   }
 
-  fieldMappingHandler(csvFieldName, pdfFieldName, mappingSource) {
+  onFieldMappingChange(csvFieldName, pdfFieldName, mappingSource) {
     this.setState(previousState => {
       let fieldMappings = [...previousState.fieldMappings]
       let index = fieldMappings.findIndex(element =>
@@ -142,20 +96,43 @@ export default class App extends React.Component {
   }
 
   render() {
+    const appStyle = {
+      display: 'grid',
+      gridTemplateColumns: `${WIDTH_OF_COLUMN} ${WIDTH_OF_COLUMN} 1fr`,
+      gridTemplateRows: '1fr 9fr',
+      height: '10em'
+    }
+
     return (<div>
-      <VLHeader />
-      <VLButton value={"Load PDF template"} onClick={this.onLoadPDFFile} />
-      <VLButton value={"Load CSV table"} onClick={this.onLoadCSVFile} />
-      <VLButton value={"Generate PDFs in folder"} />
+      <VLHeader/>
+      <div style={appStyle}>
+        <VLButton
+          value={"Load PDF template"}
+          onClick={this.onLoadPDFFile}
+          disabledButton={false}/>
+        <VLButton
+          value={"Load CSV table"}
+          onClick={this.onLoadCSVFile}
+          disabledButton={this.state.pdfFields.length === 0}/>
+        <VLButton value={"Generate PDFs in folder"}
+          disabledButton={this.state.csvFields.length === 0}/>
 
-      <VLAvailableFields
-        pdfFields={this.state.pdfFields}
-        csvFields={this.state.csvFields}
-        fieldMappingHandler={this.fieldMappingHandler}
-      />
+        <VLAvailableFields
+          csvFields={this.state.csvFields}
+          pdfFields={this.state.pdfFields}
+          onFieldMappingChange={this.onFieldMappingChange}
+          width={WIDTH_OF_COLUMN}
+          empty={EMPTY}
+          table={TABLE}
+        />
 
-      <img id="pdf-preview" src={this.state.previewSrc} />
+        <div>
+          {this.state.previewSrc ?
+            <img id="pdf-preview" src={this.state.previewSrc}/> :
+            <div style={{fontSize: '10em'}}>3</div>
+          }
+        </div>
+      </div>
     </div>);
   }
 }
-// {this.state.fieldMappings.map(element => <div>{JSON.stringify(element)}</div>)}
