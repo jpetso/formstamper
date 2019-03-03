@@ -12,6 +12,10 @@ import assert from 'assert'
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 
+// Keep the actual CSV data with the main process, as global state.
+// It will be updated on receiving a 'load-csv' event.
+let csvRows = [];
+
 const isDevMode = process.execPath.match(/[\\/]electron/);
 
 if (isDevMode) enableLiveReload({ strategy: 'react-hmr' });
@@ -63,61 +67,140 @@ app.on('activate', () => {
   }
 });
 
-ipcMain.on('generate-pdfs', (event, pdfTemplateFilename, outputPrefixTemplate, fieldMappings) => {
-  field_mappings = [
-    {
-      fieldName: 'TR_NUMBER',
-      mapping: {
-        source: 'table',
-        columnName: 'Tax Receipt No.',
+function replaceOutputPathTokens(outputPathTemplate, outputPathReplacements, row) {
+  const replacementStringPairs = {}
+
+  for (const replacedString in outputPathReplacements) {
+    replacementStringPairs[replacedString] =
+        outputPathReplacements[replacedString].reduce((replacementString, mapping) => {
+          if (mapping.source === 'table' && mapping.columnIndex < row.length) {
+            return replacementString + row[mapping.columnIndex]
+          }
+          else if (mapping.source === 'text') {
+            return replacementString + mapping.text
+          }
+          return replacementString
+        }, '')
+  }
+
+  let outputPath = outputPathTemplate
+
+  for (const replaced in replacementStringPairs) {
+    outputPath = outputPath.replace(replaced, replacementStringPairs[replaced])
+  }
+}
+
+ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fieldMappings) => {
+  /* e.g.
+    fieldMappings = [
+      {
+        fieldName: 'TR_NUMBER',
+        mapping: {
+          source: 'table',
+          columnIndex: 2,
+        }
+      },
+      {
+        fieldName: 'PROVINCE',
+        mapping: {
+          source: 'text',
+          text: 'ON',
+        }
       }
-    },
-    {
-      fieldName: 'PROVINCE',
-      mapping: {
-        source: 'text',
-        text: 'ON',
+    ];
+  */
+
+  console.log('PDF: ' + pdfTemplatePath)
+  console.log('Path template: ' + pdfOutputPathTemplate)
+
+  const pdfOutputPathReplacements = {}
+  {
+    const pdfFieldNameRegex = /{@\S+}/g
+    const csvColumnIndexRegex = /{#[0-9]+}/g
+
+    const fieldNameReplacements = fieldMappings.reduce((replacements, mapping) => {
+      replacements['{@' + mapping.fieldName + '}'] = [ mapping.mapping ]
+      return replacements
+    })
+
+    for (const match of (pdfOutputPathTemplate.match(pdfFieldNameRegex) || [])) {
+      if (fieldNameReplacements[match] !== undefined) {
+        pdfOutputPathReplacements[match] = fieldNameReplacements[match]
       }
     }
-  ];
 
-  for (const row in rows) {
-    /*pdftk
-      .input(pdfTemplateFilename)
-      .fillForm({
-        TR_NUMBER: 'data',
-        PROVINCE: 'ON',
-        the: 'form',
-      })
-      .flatten()
-      .output()
-      .then(buffer => {
-        // Do stuff with the output buffer
-        // Store it as pdf in output_dir
-      })
-      .catch(err => {
-        // handle errors
-      });*/
+    for (const match of (pdfOutputPathTemplate.match(csvColumnIndexRegex) || [])) {
+      pdfOutputPathReplacements[match] = [ {
+        source: 'table',
+        columnIndex: parseInt(match.substr(2, match.length - 1)) // exclude '{#' and '}'
+      } ]
+    }
   }
+
+  const generatedPdfs = []
+  const errors = []
+  const skipRows = 1
+  let rowIndex = 0
+
+  for (const row of csvRows) {
+    if (rowIndex < skipRows) {
+      continue
+    }
+
+    const mappings = fieldMappings.reduce((filledFormFields, fieldMapping) => {
+      if (fieldMapping.mapping.source == 'table'
+          && fieldMapping.mapping.columnIndex < row.length)
+      {
+        filledFormFields[fieldMapping.fieldName] = row[fieldMapping.mapping.columnIndex]
+      }
+      else if (fieldMapping.mapping.source == 'text') {
+        filledFormFields[fieldMapping.fieldName] = fieldMapping.mapping.text
+      }
+      return filledFormFields
+    }, {})
+
+    const pdfOutputPath = replaceOutputPathTokens(
+        pdfOutputPathTemplate, pdfOutputPathReplacements, row)
+
+    console.log('Would store PDF for row #' + rowIndex + ' as ' + pdfOutputPath + '.')
+
+    /*pdftk.input(pdfTemplatePath)
+        .fillForm(filledFormFields)
+        .flatten()
+        .output()
+        .then(buffer => {
+          fs.writeFile(pdfOutputPath, buffer, function (err) {
+            if (err) {
+              throw err
+            }
+            generatedPdfs.push({
+              pdfOutputPath: pdfOutputPath,
+              rowIndex: rowIndex
+            })
+            console.log('Stored PDF for row #' + rowIndex + ' as ' + pdfOutputPath + '.')
+          })
+        })
+        .catch(err => {
+          errors.push({
+            pdfOutputPath: pdfOutputPath,
+            type: 'Exception',
+            name: err.name,
+            message: err.message,
+            rowIndex: rowIndex,
+            row: row
+          })
+        });*/
+
+    ++rowIndex
+  }
+
+  event.sender.send('pdf-generation-finished', generatedPdfs, errors)
 })
 
-ipcMain.on('load-pdf-template', (event, filename) => {
-  console.log(filename)
+ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
+  console.log('Loading PDF template: ' + pdfTemplatePath)
 
-  event.sender.send('pdf-fields-available', filename, [
-    {
-      fieldName: 'TR_NUMBER',
-      fieldType: 'Text',
-      fieldValue: '',
-    },
-    {
-      fieldName: 'PROVINCE',
-      fieldType: 'Text',
-      fieldValue: 'ON',
-    },
-  ])
-
-  const rawData = new Uint8Array(fs.readFileSync(filename));
+  const rawData = new Uint8Array(fs.readFileSync(pdfTemplatePath));
   const loadingTask = pdfjsLib.getDocument(rawData);
 
   function NodeCanvasFactory() {}
@@ -154,38 +237,60 @@ ipcMain.on('load-pdf-template', (event, filename) => {
   loadingTask.promise.then(function(pdfDocument) {
     console.log('# PDF document loaded.');
 
-    // Get the first page.
-    pdfDocument.getPage(1).then(function (page) {
-      let annotationsTask = page.getAnnotations().then(function() {
-        console.log(arguments)
-      })
+    const pagePromises = []
+    const annotationPromises = []
+    const fieldsByName = {}
+    const fieldNames = []
 
-      // Render the page on a Node canvas with 100% scale.
-      const viewport = page.getViewport(1.0);
-      const canvasFactory = new NodeCanvasFactory();
-      console.log(viewport);
-      const canvasAndContext =
-          canvasFactory.create(viewport.width, viewport.height)
-      const renderContext = {
-        canvasContext: canvasAndContext.context,
-        viewport: viewport,
-        canvasFactory: canvasFactory,
-      }
-
-      const renderTask = page.render(renderContext)
-      renderTask.promise.then(function() {
-        // Convert the canvas to an image buffer.
-        const image = canvasAndContext.canvas.toDataURL('image/png')
-        event.sender.send('pdf-preview-updated', filename, image)
-        /*const buffer = canvasAndContext.canvas.toBuffer()
-        fs.writeFile('output.pdf', buffer, function (error) {
-          if (error) {
-            console.error('Error: ' + error)
-          } else {
-            console.log(
-              'Finished converting first page of PDF file to a PNG image.')
+    for (let i = 1; i <= pdfDocument.numPages; i++) {
+      pagePromises.push(pdfDocument.getPage(i).then(page => {
+        annotationPromises.push(page.getAnnotations().then(annotations => {
+          for (const ann of annotations) {
+            if (ann.subtype != 'Widget' || ann.readOnly) {
+              continue
+            }
+            if (fieldsByName[ann.fieldName] !== undefined) {
+              continue
+            }
+            if (ann.fieldType == 'Tx') {
+              fieldsByName[ann.fieldName] = {
+                fieldName: ann.fieldName,
+                fieldType: 'Text',
+                fieldValue: ann.fieldValue,
+                multiLine: ann.multiLine,
+                maxLength: ann.maxLen,
+              }
+              fieldNames.push(ann.fieldName)
+            }
           }
-        })*/
+        }))
+
+        // Render the page on a Node canvas with 100% scale.
+        const viewport = page.getViewport(1.0)
+        const canvasFactory = new NodeCanvasFactory()
+        const canvasAndContext =
+            canvasFactory.create(viewport.width, viewport.height)
+        const renderContext = {
+          canvasContext: canvasAndContext.context,
+          viewport: viewport,
+          canvasFactory: canvasFactory,
+        }
+
+        const renderTask = page.render(renderContext)
+        renderTask.promise.then(() => {
+          // Convert the canvas to an image buffer.
+          const image = canvasAndContext.canvas.toDataURL('image/png')
+          event.sender.send('pdf-preview-updated', pdfTemplatePath, image)
+        })
+      }))
+    }
+    Promise.all(pagePromises).then(() => {
+      Promise.all(annotationPromises).then(() => {
+        event.sender.send('pdf-fields-available', pdfTemplatePath,
+            fieldNames.reduce((fields, fieldName) => {
+              fields.push(fieldsByName[fieldName])
+              return fields
+            }, []))
       })
     })
   }).catch(function(reason) {
@@ -193,10 +298,10 @@ ipcMain.on('load-pdf-template', (event, filename) => {
   })
 })
 
-ipcMain.on('load-csv', (event, filename) => {
+ipcMain.on('load-csv', (event, csvPath) => {
   let context = this
   let rows = []
-  let filestream = fs.createReadStream(filename)
+  let filestream = fs.createReadStream(csvPath)
     .pipe(parse())
     .on('data', function(row) {
       rows.push(row)
@@ -205,10 +310,12 @@ ipcMain.on('load-csv', (event, filename) => {
       dialog.showErrorBox("CSV loading error", err.message);
     })
     .on('end', function() {
-      const fields = rows[0].map((field) => ({
+      const fields = rows[0].map((field, index) => ({
+        fieldIndex: index,
         fieldName: field
       }))
-      event.sender.send('csv-fields-available', filename, fields)
+      csvRows = rows;
+      event.sender.send('csv-fields-available', csvPath, fields)
     })
 })
 

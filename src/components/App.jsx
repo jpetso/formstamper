@@ -1,5 +1,6 @@
 import React from 'react'
 import { remote, ipcRenderer } from 'electron'
+import path from 'path'
 import VLHeader from './VLHeader'
 import VLButton from './VLButton'
 import VLAvailableFields from './VLAvailableFields'
@@ -20,19 +21,23 @@ export default class App extends React.Component {
     this.state = {
       pdfFields: [],
       csvFields: [],
-      previewSrc: "",
+      previewSrc: '',
+      pdfTemplatePath: '',
       fieldMappings: []
     }
 
-    ipcRenderer.on('pdf-fields-available', (event, pdfTemplateFilename, fields) => {
-      this.setState(this.resetFieldMappings(this.state.csvFields, fields))
+    ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
+      console.log(fields)
+      const updates = this.resetFieldMappings(this.state.csvFields, fields)
+      updates.pdfTemplatePath = pdfTemplatePath
+      this.setState(updates)
     })
 
-    ipcRenderer.on('csv-fields-available', (event, csvFilename, fields) => {
+    ipcRenderer.on('csv-fields-available', (event, csvPath, fields) => {
       this.setState(this.resetFieldMappings(fields, this.state.pdfFields))
     })
 
-    ipcRenderer.on('pdf-preview-updated', (event, pdfTemplateFilename, imgsrc) => {
+    ipcRenderer.on('pdf-preview-updated', (event, pdfTemplatePath, imgsrc) => {
       this.setState({ previewSrc: imgsrc })
     })
   }
@@ -45,7 +50,7 @@ export default class App extends React.Component {
     }
   }
 
-  onFieldMappingChange(csvFieldName, pdfFieldName, mappingSource) {
+  onFieldMappingChange(csvFieldValue, pdfFieldName, mappingSource) {
     this.setState(previousState => {
       let fieldMappings = [...previousState.fieldMappings]
       let index = fieldMappings.findIndex(element =>
@@ -53,11 +58,18 @@ export default class App extends React.Component {
       index = (index === -1) ? fieldMappings.length : index
       fieldMappings.splice(index, 1)
 
-      const newEntry = csvFieldName === EMPTY ? [] :
-        [{fieldName: pdfFieldName,
-          mapping: {
-            source: mappingSource,
-            [mappingSource === TABLE ? "columnName" : "text"]: csvFieldName}
+      const newEntry = csvFieldValue === EMPTY ? [] :
+        [{
+          fieldName: pdfFieldName,
+          mapping: mappingSource === TABLE
+            ? {
+                source: 'table',
+                columnIndex: parseInt(csvFieldValue)
+              }
+            : {
+                source: 'text',
+                text: csvFieldValue,
+              }
         }]
 
       return { fieldMappings: [...fieldMappings, ...newEntry] }
@@ -95,6 +107,17 @@ export default class App extends React.Component {
     ipcRenderer.send('load-csv', filenames[0])
   }
 
+  onGeneratePDFs() {
+    const dirnames = dialog.showOpenDialog({properties: ['openDirectory']})
+    if (!Array.isArray(dirnames) || dirnames.length !== 1) {
+      return
+    }
+
+    ipcRenderer.send('generate-pdfs', this.state.pdfTemplatePath,
+        dirnames[0] + path.sep + 'Tax Receipt {@TR_NUMBER} - {@NAME}.pdf',
+        this.state.fieldMappings)
+  }
+
   render() {
     const appStyle = {
       display: 'grid',
@@ -114,8 +137,10 @@ export default class App extends React.Component {
           value={"Load CSV table"}
           onClick={this.onLoadCSVFile}
           disabledButton={this.state.pdfFields.length === 0}/>
-        <VLButton value={"Generate PDFs in folder"}
-          disabledButton={this.state.csvFields.length === 0}/>
+        <VLButton
+          value={"Select output folder"}
+          onClick={this.onGeneratePDFs.bind(this)}
+          disabledButton={this.state.pdfTemplatePath === '' || this.state.csvFields.length === 0}/>
 
         <VLAvailableFields
           csvFields={this.state.csvFields}

@@ -2,7 +2,7 @@ import React from 'react'
 
 const CsvFieldsDisplay = (props) => {
   const options = props.csvFields.map(csvElement =>
-    <option value={csvElement.fieldName}
+    <option value={csvElement.fieldIndex}
       key={`${csvElement.fieldName}Option`}>{csvElement.fieldName}</option>)
 
   return (
