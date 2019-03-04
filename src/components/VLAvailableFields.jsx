@@ -5,7 +5,9 @@ const VLAvailableFields = (props) => {
   const containerStyle = {
     gridArea: '2 / 1 / span 1 / span 2',
     display: 'grid',
-    gridTemplateColumns: `${props.width} ${props.width}`
+    gridTemplateColumns: `${props.width} 1fr`,
+    overflowY: 'auto',
+    overflowX: 'hidden'
   }
 
   return (
@@ -13,7 +15,8 @@ const VLAvailableFields = (props) => {
       <div style={{display: props.pdfFields.length === 0 ? 'none' : 'grid'}}>
         {props.pdfFields.map(pdfElement =>
           <div key={`${pdfElement.fieldName}Div1`}
-            style={{overflow: "auto"}}>{pdfElement.fieldName}
+            style={{overflow: "hidden"}}
+            title={pdfElement.fieldName}>{pdfElement.fieldName}
           </div>)}
       </div>
       <div style={{fontSize: '10em',

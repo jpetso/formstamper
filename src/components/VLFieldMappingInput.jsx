@@ -10,7 +10,7 @@ export default class VLFieldMappingInput extends React.Component {
     this.state = {
       canEdit: true,
       isEditingCustomValue: false,
-      fieldValue : this.props.pdfElement.fieldValue
+      fieldValue: this.props.pdfElement.fieldValue
     }
   }
 
@@ -50,20 +50,24 @@ export default class VLFieldMappingInput extends React.Component {
         <select
           onChange={this.mapInput}
           style={{maxWidth: '13em',
+          height: '1.5em',
           display: this.state.isEditingCustomValue ? 'none' : 'initial'}}>
           <option value={this.state.fieldValue}>{this.state.fieldValue === ''
             ? this.props.empty : `Text: "${this.state.fieldValue}"`}</option>
           {options}
         </select>
-        <input type="text" style={{maxWidth: '13em',
+        <input type="text" style={{width: '12.75em',
+          height: '1em',
           display: this.state.isEditingCustomValue ? 'initial' : 'none'}}
           onChange={this.updateFieldValue}
           onKeyPress={this.updateFieldValue}></input>
         <button style={{width: '2em',
-          display: !this.state.isEditingCustomValue &&
-            this.state.canEdit ? 'initial' : 'none'}}
+          display: this.state.isEditingCustomValue ? 'none' : 'initial',
+          height: '1.5em'}}
+          disabled={!this.state.canEdit}
           onClick={this.editCustomValue}>p</button>
         <button style={{width: '2em',
+          height: '1.5em',
           display: this.state.isEditingCustomValue ? 'initial' : 'none'}}
           onClick={this.submitCustomValue}>ok</button>
       </div>
