@@ -149,6 +149,7 @@ export default class App extends React.Component {
           width={WIDTH_OF_COLUMN}
           empty={EMPTY}
           table={TABLE}
+          text={TEXT}
         />
 
         <div>
