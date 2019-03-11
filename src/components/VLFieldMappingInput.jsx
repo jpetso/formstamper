@@ -42,8 +42,8 @@ export default class VLFieldMappingInput extends React.Component {
 
   render() {
     const options = this.props.csvFields.map(csvElement =>
-      <option value={csvElement.fieldName}
-        key={`${csvElement.fieldName}Option`}>{csvElement.fieldName}</option>)
+      <option value={csvElement.fieldIndex}
+        key={`Option${csvElement.fieldIndex}`}>{csvElement.fieldName}</option>)
 
     return (
       <div>
