@@ -59,7 +59,7 @@ export default class App extends React.Component {
       fieldMappings.splice(index, 1)
 
       const newEntry = csvFieldValue === EMPTY ? [] :
-        [{
+        {
           fieldName: pdfFieldName,
           mapping: mappingSource === TABLE
             ? {
@@ -70,9 +70,9 @@ export default class App extends React.Component {
                 source: 'text',
                 text: csvFieldValue,
               }
-        }]
+        }
 
-      return { fieldMappings: [...fieldMappings, ...newEntry] }
+      return { fieldMappings: [...fieldMappings, newEntry] }
     })
   }
 
