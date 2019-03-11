@@ -64,7 +64,7 @@ export default class App extends React.Component {
           mapping: mappingSource === TABLE
             ? {
                 source: 'table',
-                columnIndex: parseInt(csvFieldValue)
+                columnNumber: parseInt(csvFieldValue)
               }
             : {
                 source: 'text',

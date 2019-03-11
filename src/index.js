@@ -73,13 +73,13 @@ function replaceOutputPathTokens(outputPathTemplate, outputPathReplacements, row
   for (const replacedString in outputPathReplacements) {
     replacementStringPairs[replacedString] =
         outputPathReplacements[replacedString].reduce((replacementString, mapping) => {
-          if (mapping.source === 'table' && mapping.columnIndex < row.length) {
-            return replacementString + row[mapping.columnIndex]
+          if (mapping.source === 'table' && mapping.columnNumber <= row.length) {
+            return replacementString + row[mapping.columnNumber - 1]
           }
           else if (mapping.source === 'text') {
             return replacementString + mapping.text
           }
-          return replacementString
+          return replacementString + '@@@'
         }, '')
   }
 
@@ -88,6 +88,8 @@ function replaceOutputPathTokens(outputPathTemplate, outputPathReplacements, row
   for (const replaced in replacementStringPairs) {
     outputPath = outputPath.replace(replaced, replacementStringPairs[replaced])
   }
+
+  return outputPath
 }
 
 ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fieldMappings) => {
@@ -97,7 +99,7 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
         fieldName: 'TR_NUMBER',
         mapping: {
           source: 'table',
-          columnIndex: 2,
+          columnNumber: 2,
         }
       },
       {
@@ -116,12 +118,12 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
   const pdfOutputPathReplacements = {}
   {
     const pdfFieldNameRegex = /{@\S+}/g
-    const csvColumnIndexRegex = /{#[0-9]+}/g
+    const csvColumnNumberRegex = /{#[0-9]+}/g
 
     const fieldNameReplacements = fieldMappings.reduce((replacements, mapping) => {
       replacements['{@' + mapping.fieldName + '}'] = [ mapping.mapping ]
       return replacements
-    })
+    }, {})
 
     for (const match of (pdfOutputPathTemplate.match(pdfFieldNameRegex) || [])) {
       if (fieldNameReplacements[match] !== undefined) {
@@ -129,29 +131,35 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
       }
     }
 
-    for (const match of (pdfOutputPathTemplate.match(csvColumnIndexRegex) || [])) {
+    for (const match of (pdfOutputPathTemplate.match(csvColumnNumberRegex) || [])) {
       pdfOutputPathReplacements[match] = [ {
         source: 'table',
-        columnIndex: parseInt(match.substr(2, match.length - 1)) // exclude '{#' and '}'
+        columnNumber: parseInt(match.substr(2, match.length - 1)) // exclude '{#' and '}'
       } ]
     }
   }
 
+  console.log('Path template replacements: ')
+  console.log(pdfOutputPathReplacements)
+
   const generatedPdfs = []
   const errors = []
   const skipRows = 1
-  let rowIndex = 0
+  let rowNumber = 0
 
   for (const row of csvRows) {
-    if (rowIndex < skipRows) {
+    ++rowNumber
+
+    if (rowNumber <= skipRows) {
       continue
     }
 
-    const mappings = fieldMappings.reduce((filledFormFields, fieldMapping) => {
+    const concreteMappings = fieldMappings.reduce((filledFormFields, fieldMapping) => {
       if (fieldMapping.mapping.source == 'table'
-          && fieldMapping.mapping.columnIndex < row.length)
+          && fieldMapping.mapping.columnNumber <= row.length)
       {
-        filledFormFields[fieldMapping.fieldName] = row[fieldMapping.mapping.columnIndex]
+        filledFormFields[fieldMapping.fieldName] =
+            row[fieldMapping.mapping.columnNumber - 1]
       }
       else if (fieldMapping.mapping.source == 'text') {
         filledFormFields[fieldMapping.fieldName] = fieldMapping.mapping.text
@@ -162,10 +170,11 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
     const pdfOutputPath = replaceOutputPathTokens(
         pdfOutputPathTemplate, pdfOutputPathReplacements, row)
 
-    console.log('Would store PDF for row #' + rowIndex + ' as ' + pdfOutputPath + '.')
+    console.log('Storing PDF for row #' + rowNumber + ' as ' + pdfOutputPath + '.')
+    console.log(concreteMappings)
 
-    /*pdftk.input(pdfTemplatePath)
-        .fillForm(filledFormFields)
+    pdftk.input(pdfTemplatePath)
+        .fillForm(concreteMappings)
         .flatten()
         .output()
         .then(buffer => {
@@ -175,9 +184,9 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
             }
             generatedPdfs.push({
               pdfOutputPath: pdfOutputPath,
-              rowIndex: rowIndex
+              rowNumber: rowNumber
             })
-            console.log('Stored PDF for row #' + rowIndex + ' as ' + pdfOutputPath + '.')
+            console.log('Stored PDF for row #' + rowNumber + ' as ' + pdfOutputPath + '.')
           })
         })
         .catch(err => {
@@ -186,12 +195,10 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
             type: 'Exception',
             name: err.name,
             message: err.message,
-            rowIndex: rowIndex,
+            rowNumber: rowNumber,
             row: row
           })
-        });*/
-
-    ++rowIndex
+        });
   }
 
   event.sender.send('pdf-generation-finished', generatedPdfs, errors)
@@ -311,7 +318,7 @@ ipcMain.on('load-csv', (event, csvPath) => {
     })
     .on('end', function() {
       const fields = rows[0].map((field, index) => ({
-        fieldIndex: index,
+        columnNumber: index + 1,
         fieldName: field
       }))
       csvRows = rows;
