@@ -1,8 +1,8 @@
 {
-  "name": "vox-lustralis",
-  "productName": "Vox Lustralis",
+  "name": "formstamper",
+  "productName": "Formstamper",
   "version": "0.0.1",
-  "description": "GUI application (using Electron) for batch PDF form filling",
+  "description": "GUI application (using Electron) for batch filling PDF forms",
   "main": "src/index.js",
   "scripts": {
     "start": "electron-forge start",
@@ -32,17 +32,17 @@
         "packageManager": "yarn"
       },
       "electronWinstallerConfig": {
-        "name": "vox_lustralis"
+        "name": "formstamper"
       },
       "electronInstallerDebian": {},
       "electronInstallerRedhat": {},
       "github_repository": {
         "owner": "jpetso",
-        "name": "vox-lustralis"
+        "name": "formstamper"
       },
       "windowsStoreConfig": {
         "packageName": "",
-        "name": "voxlustralis"
+        "name": "formstamper"
       }
     }
   },
