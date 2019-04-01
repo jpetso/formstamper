@@ -19,8 +19,11 @@ export default class VLFieldMappingInput extends React.Component {
   }
 
   submitCustomValue(event) {
-    this.setState(prevState => ({isEditingCustomValue: false,
-      fieldValue: prevState.fieldValue}))
+    this.setState({isEditingCustomValue: false})
+    this.props.onFieldMappingChange(
+      this.state.fieldValue,
+      this.props.pdfElement.fieldName,
+      this.props.text)
   }
 
   mapInput(event) {

@@ -27,7 +27,6 @@ export default class App extends React.Component {
     }
 
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
-      console.log(fields)
       const updates = this.resetFieldMappings(this.state.csvFields, fields)
       updates.pdfTemplatePath = pdfTemplatePath
       this.setState(updates)
