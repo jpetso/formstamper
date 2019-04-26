@@ -207,7 +207,6 @@ export default class App extends React.Component {
           onFieldMappingChange={this.onFieldMappingChange}
           width={WIDTH_OF_COLUMN}
           empty={EMPTY}
-          table={TABLE}
           text={TEXT}
           availableFieldsSettings={this.state.availableFieldsSettings}
           mapInput={this.mapInput}

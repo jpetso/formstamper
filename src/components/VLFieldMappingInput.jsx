@@ -5,15 +5,29 @@ const VLFieldMappingInput = (props) => {
     <option value={csvElement.columnNumber}
       key={`${csvElement.columnNumber}-col`}>{csvElement.fieldName}</option>)
 
+  const selectHandler = event => {props.mapInput(
+    props.pdfElement.fieldName,
+    event.target.value,
+    props.index,
+    event.target.options.selectedIndex)
+  }
+
+  const inputHandler = event => props.updateFieldValue(
+    event,
+    props.pdfElement.fieldName,
+    props.text,
+    props.index)
+
+  const okButtonHandler = () => props.submitCustomValue(
+    props.pdfElement,
+    props.text,
+    props.index
+  )
+
   return (
     <div>
       <select
-        onChange={event => {props.mapInput(
-          props.pdfElement.fieldName,
-          event.target.value,
-          props.index,
-          event.target.options.selectedIndex)
-        }}
+        onChange={selectHandler}
         value={props.settings.selectIndex}
         style={{maxWidth: '13em',
         height: '1.5em',
@@ -26,16 +40,8 @@ const VLFieldMappingInput = (props) => {
         height: '1em',
         display: props.settings.isEditingCustomValue ? 'initial' : 'none'}}
         value={props.settings.fieldValue}
-        onChange={event => props.updateFieldValue(
-          event,
-          props.pdfElement.fieldName,
-          props.text,
-          props.index)}
-        onKeyPress={event => props.updateFieldValue(
-          event,
-          props.pdfElement.fieldName,
-          props.text,
-          props.index)}></input>
+        onChange={inputHandler}
+        onKeyPress={inputHandler}></input>
       <button style={{width: '2em',
         display: props.settings.isEditingCustomValue ? 'none' : 'initial',
         height: '1.5em'}}
@@ -44,11 +50,7 @@ const VLFieldMappingInput = (props) => {
       <button style={{width: '2em',
         height: '1.5em',
         display: props.settings.isEditingCustomValue ? 'initial' : 'none'}}
-        onClick={(event) => props.submitCustomValue(
-          props.pdfElement,
-          props.text,
-          props.index
-        )}>ok</button>
+        onClick={okButtonHandler}>ok</button>
     </div>
   )
 }

@@ -26,7 +26,6 @@ const VLAvailableFields = (props) => {
           props.pdfFields.map((pdfElement, index) =>
             <VLFieldMappingInput
               key={`${pdfElement.fieldName}Div2`}
-              table={props.table}
               text={props.text}
               empty={props.empty}
               width={props.width}
