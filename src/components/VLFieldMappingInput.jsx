@@ -16,6 +16,7 @@ const VLFieldMappingInput = (props) => {
           event.target.options.selectedIndex === 0,
           props.index)
         }}
+        value={props.settings.selectIndex}
         style={{maxWidth: '13em',
         height: '1.5em',
         display: props.settings.isEditingCustomValue ? 'none' : 'initial'}}>
@@ -26,6 +27,7 @@ const VLFieldMappingInput = (props) => {
       <input type="text" style={{width: '12.75em',
         height: '1em',
         display: props.settings.isEditingCustomValue ? 'initial' : 'none'}}
+        value={props.settings.fieldValue}
         onChange={event => props.updateFieldValue(
           event,
           props.pdfElement.fieldName,
