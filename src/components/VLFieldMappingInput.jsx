@@ -11,10 +11,8 @@ const VLFieldMappingInput = (props) => {
         onChange={event => {props.mapInput(
           props.pdfElement.fieldName,
           event.target.value,
-          (event.target.options.selectedIndex === 0) ?
-            props.text : props.table,
-          event.target.options.selectedIndex === 0,
-          props.index)
+          props.index,
+          event.target.options.selectedIndex)
         }}
         value={props.settings.selectIndex}
         style={{maxWidth: '13em',

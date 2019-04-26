@@ -148,12 +148,13 @@ export default class App extends React.Component {
       )}))
   }
 
-  mapInput(pdfField, csvField, source, canEdit, index, selectIndex) {
-    this.copyAvailableFieldsSettings(index, {canEdit, selectIndex})
+  mapInput(pdfField, csvField, index, selectIndex) {
+    this.copyAvailableFieldsSettings(index, {selectIndex,
+      canEdit: selectIndex === 0})
     this.onFieldMappingChange(
       csvField,
       pdfField,
-      source)
+      (selectIndex === 0) ? TEXT : TABLE)
   }
 
   submitCustomValue(pdfField, source, index) {
