@@ -18,12 +18,19 @@ export default class App extends React.Component {
     this.onLoadPDFFile = this.onLoadPDFFile.bind(this)
     this.resetFieldMappings = this.resetFieldMappings.bind(this)
     this.onFieldMappingChange = this.onFieldMappingChange.bind(this)
+    this.resetAvailableFieldSettings = this.resetAvailableFieldSettings.bind(this)
+    this.mapInput = this.mapInput.bind(this)
+    this.updateFieldValue = this.updateFieldValue.bind(this)
+    this.submitCustomValue = this.submitCustomValue.bind(this)
+    this.copyAvailableFieldsSettings = this.copyAvailableFieldsSettings.bind(this)
+    this.editCustomValue = this.editCustomValue.bind(this)
     this.state = {
       pdfFields: [],
       csvFields: [],
       previewSrc: '',
       pdfTemplatePath: '',
-      fieldMappings: []
+      fieldMappings: [],
+      availableFieldsSettings: [],
     }
 
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
@@ -33,7 +40,10 @@ export default class App extends React.Component {
     })
 
     ipcRenderer.on('csv-fields-available', (event, csvPath, fields) => {
-      this.setState(this.resetFieldMappings(fields, this.state.pdfFields))
+      this.setState(Object.assign(
+        this.resetAvailableFieldSettings(),
+        this.resetFieldMappings(fields, this.state.pdfFields))
+      )
     })
 
     ipcRenderer.on('pdf-preview-updated', (event, pdfTemplatePath, imgsrc) => {
@@ -46,6 +56,18 @@ export default class App extends React.Component {
       pdfFields: pdfFields,
       csvFields: csvFields,
       fieldMappings: []
+    }
+  }
+
+  resetAvailableFieldSettings() {
+    return {
+      availableFieldsSettings: this.state.pdfFields.map(
+        element => ({
+          canEdit: true,
+          isEditingCustomValue: false,
+          fieldValue: element.fieldValue
+        })
+      ),
     }
   }
 
@@ -117,6 +139,42 @@ export default class App extends React.Component {
         this.state.fieldMappings)
   }
 
+  copyAvailableFieldsSettings(index, setting) {
+    //setting is an object
+    this.setState(prevState =>
+      ({availableFieldsSettings: prevState.availableFieldsSettings.map((element, i) =>
+        (i === index) ? Object.assign({}, element, setting) : element
+      )}))
+  }
+
+  mapInput(pdfField, csvField, source, canEdit, index) {
+    this.copyAvailableFieldsSettings(index, {canEdit})
+    this.onFieldMappingChange(
+      csvField,
+      pdfField,
+      source)
+  }
+
+  submitCustomValue(pdfField, source, index) {
+    this.copyAvailableFieldsSettings(index, {isEditingCustomValue: false})
+    this.onFieldMappingChange(
+      this.state.availableFieldsSettings[index].fieldValue,
+      pdfField,
+      source)
+  }
+
+  updateFieldValue(event, pdfField, source, index) {
+    if(event.key == 'Enter') {
+      this.submitCustomValue(pdfField, source, index)
+      return
+    }
+    this.copyAvailableFieldsSettings(index, {fieldValue: event.target.value})
+  }
+
+  editCustomValue(index) {
+    this.copyAvailableFieldsSettings(index, {isEditingCustomValue: true})
+  }
+
   render() {
     const appStyle = {
       display: 'grid',
@@ -149,6 +207,11 @@ export default class App extends React.Component {
           empty={EMPTY}
           table={TABLE}
           text={TEXT}
+          availableFieldsSettings={this.state.availableFieldsSettings}
+          mapInput={this.mapInput}
+          updateFieldValue={this.updateFieldValue}
+          editCustomValue={this.editCustomValue}
+          submitCustomValue={this.submitCustomValue}
         />
 
         <div>
