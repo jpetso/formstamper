@@ -18,11 +18,11 @@ export default class App extends React.Component {
     this.onLoadPDFFile = this.onLoadPDFFile.bind(this)
     this.resetFieldMappings = this.resetFieldMappings.bind(this)
     this.onFieldMappingChange = this.onFieldMappingChange.bind(this)
-    this.resetAvailableFieldSettings = this.resetAvailableFieldSettings.bind(this)
-    this.mapInput = this.mapInput.bind(this)
+    this.resetAvailableFieldState = this.resetAvailableFieldState.bind(this)
+    this.updateFieldMappings = this.updateFieldMappings.bind(this)
     this.updateFieldValue = this.updateFieldValue.bind(this)
     this.submitCustomValue = this.submitCustomValue.bind(this)
-    this.copyAvailableFieldsSettings = this.copyAvailableFieldsSettings.bind(this)
+    this.setAvailableFieldsState = this.setAvailableFieldsState.bind(this)
     this.editCustomValue = this.editCustomValue.bind(this)
     this.state = {
       pdfFields: [],
@@ -30,7 +30,7 @@ export default class App extends React.Component {
       previewSrc: '',
       pdfTemplatePath: '',
       fieldMappings: [],
-      availableFieldsSettings: [],
+      availableFieldsState: [],
     }
 
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
@@ -41,60 +41,13 @@ export default class App extends React.Component {
 
     ipcRenderer.on('csv-fields-available', (event, csvPath, fields) => {
       this.setState(Object.assign(
-        this.resetAvailableFieldSettings(),
+        this.resetAvailableFieldState(),
         this.resetFieldMappings(fields, this.state.pdfFields))
       )
     })
 
     ipcRenderer.on('pdf-preview-updated', (event, pdfTemplatePath, imgsrc) => {
       this.setState({ previewSrc: imgsrc })
-    })
-  }
-
-  resetFieldMappings(csvFields, pdfFields) {
-    return {
-      pdfFields: pdfFields,
-      csvFields: csvFields,
-      fieldMappings: []
-    }
-  }
-
-  resetAvailableFieldSettings() {
-    return {
-      availableFieldsSettings: this.state.pdfFields.map(
-        element => ({
-          canEdit: true,
-          isEditingCustomValue: false,
-          fieldValue: element.fieldValue,
-          selectIndex: 0
-        })
-      ),
-    }
-  }
-
-  onFieldMappingChange(csvFieldValue, pdfFieldName, mappingSource) {
-    this.setState(previousState => {
-      let fieldMappings = [...previousState.fieldMappings]
-      let index = fieldMappings.findIndex(element =>
-        element.fieldName === pdfFieldName)
-      index = (index === -1) ? fieldMappings.length : index
-      fieldMappings.splice(index, 1)
-
-      const newEntry = csvFieldValue === EMPTY ? [] :
-        {
-          fieldName: pdfFieldName,
-          mapping: mappingSource === TABLE
-            ? {
-                source: 'table',
-                columnNumber: parseInt(csvFieldValue)
-              }
-            : {
-                source: 'text',
-                text: csvFieldValue,
-              }
-        }
-
-      return { fieldMappings: [...fieldMappings, newEntry] }
     })
   }
 
@@ -140,16 +93,63 @@ export default class App extends React.Component {
         this.state.fieldMappings)
   }
 
-  copyAvailableFieldsSettings(index, setting) {
+  resetFieldMappings(csvFields, pdfFields) {
+    return {
+      pdfFields: pdfFields,
+      csvFields: csvFields,
+      fieldMappings: []
+    }
+  }
+
+  resetAvailableFieldState() {
+    return {
+      availableFieldsState: this.state.pdfFields.map(
+        element => ({
+          canEdit: true,
+          isEditingCustomValue: false,
+          fieldValue: element.fieldValue,
+          selectIndex: 0
+        })
+      ),
+    }
+  }
+
+  onFieldMappingChange(csvFieldValue, pdfFieldName, mappingSource) {
+    this.setState(previousState => {
+      let fieldMappings = [...previousState.fieldMappings]
+      let index = fieldMappings.findIndex(element =>
+        element.fieldName === pdfFieldName)
+      index = (index === -1) ? fieldMappings.length : index
+      fieldMappings.splice(index, 1)
+
+      const newEntry = csvFieldValue === EMPTY ? [] :
+        {
+          fieldName: pdfFieldName,
+          mapping: mappingSource === TABLE
+            ? {
+                source: 'table',
+                columnNumber: parseInt(csvFieldValue)
+              }
+            : {
+                source: 'text',
+                text: csvFieldValue,
+              }
+        }
+
+      return { fieldMappings: [...fieldMappings, newEntry] }
+    })
+  }
+
+  setAvailableFieldsState(index, setting) {
     //setting is an object
     this.setState(prevState =>
-      ({availableFieldsSettings: prevState.availableFieldsSettings.map((element, i) =>
+      ({availableFieldsState: prevState.availableFieldsState.map((element, i) =>
         (i === index) ? Object.assign({}, element, setting) : element
       )}))
   }
 
-  mapInput(pdfField, csvField, index, selectIndex) {
-    this.copyAvailableFieldsSettings(index, {selectIndex,
+  updateFieldMappings(pdfField, csvField, index, selectIndex) {
+    this.setAvailableFieldsState(index, {selectIndex,
       canEdit: selectIndex === 0})
     this.onFieldMappingChange(
       csvField,
@@ -158,9 +158,9 @@ export default class App extends React.Component {
   }
 
   submitCustomValue(pdfField, source, index) {
-    this.copyAvailableFieldsSettings(index, {isEditingCustomValue: false})
+    this.setAvailableFieldsState(index, {isEditingCustomValue: false})
     this.onFieldMappingChange(
-      this.state.availableFieldsSettings[index].fieldValue,
+      this.state.availableFieldsState[index].fieldValue,
       pdfField,
       source)
   }
@@ -170,11 +170,11 @@ export default class App extends React.Component {
       this.submitCustomValue(pdfField, source, index)
       return
     }
-    this.copyAvailableFieldsSettings(index, {fieldValue: event.target.value})
+    this.setAvailableFieldsState(index, {fieldValue: event.target.value})
   }
 
   editCustomValue(index) {
-    this.copyAvailableFieldsSettings(index, {isEditingCustomValue: true})
+    this.setAvailableFieldsState(index, {isEditingCustomValue: true})
   }
 
   render() {
@@ -208,8 +208,8 @@ export default class App extends React.Component {
           width={WIDTH_OF_COLUMN}
           empty={EMPTY}
           text={TEXT}
-          availableFieldsSettings={this.state.availableFieldsSettings}
-          mapInput={this.mapInput}
+          availableFieldsState={this.state.availableFieldsState}
+          updateFieldMappings={this.updateFieldMappings}
           updateFieldValue={this.updateFieldValue}
           editCustomValue={this.editCustomValue}
           submitCustomValue={this.submitCustomValue}

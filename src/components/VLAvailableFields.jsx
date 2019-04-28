@@ -32,8 +32,8 @@ const VLAvailableFields = (props) => {
               csvFields={props.csvFields}
               pdfFields={props.pdfFields}
               pdfElement={pdfElement}
-              settings={props.availableFieldsSettings[index]}
-              mapInput={props.mapInput}
+              state={props.availableFieldsState[index]}
+              updateFieldMappings={props.updateFieldMappings}
               updateFieldValue={props.updateFieldValue}
               editCustomValue={props.editCustomValue}
               submitCustomValue={props.submitCustomValue}
