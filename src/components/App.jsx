@@ -26,19 +26,19 @@ export default class App extends React.Component {
       availableFieldsState: [],
     }
 
+    const mapPdfFields = element => ({
+      canEdit: true,
+      isEditingCustomValue: false,
+      fieldValue: element.fieldValue,
+      selectIndex: 0
+    })
+
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
       this.setState(prevState => ({
         pdfFields: fields,
         pdfTemplatePath,
         fieldMappings: [],
-        availableFieldsState: prevState.pdfFields.map(
-            element => ({
-              canEdit: true,
-              isEditingCustomValue: false,
-              fieldValue: element.fieldValue,
-              selectIndex: 0
-            })
-          )
+        availableFieldsState: prevState.pdfFields.map(mapPdfFields)
       }))
     })
 
@@ -46,14 +46,7 @@ export default class App extends React.Component {
       this.setState(prevState => ({
         csvFields: fields,
         fieldMappings: [],
-        availableFieldsState: prevState.pdfFields.map(
-          element => ({
-            canEdit: true,
-            isEditingCustomValue: false,
-            fieldValue: element.fieldValue,
-            selectIndex: 0
-          })
-        ),
+        availableFieldsState: prevState.pdfFields.map(mapPdfFields)
       }))
     })
 
