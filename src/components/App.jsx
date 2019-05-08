@@ -98,8 +98,6 @@ export default class App extends React.Component {
   }
 
   onFieldMappingChange(index, selectIndex) {
-    index = index
-    selectIndex = selectIndex
     let csvFieldValue
     if (selectIndex === 0) {
       csvFieldValue = this.state.availableFieldsState[index].fieldValue
