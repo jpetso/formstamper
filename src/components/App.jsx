@@ -98,33 +98,27 @@ export default class App extends React.Component {
   }
 
   onFieldMappingChange(index, selectIndex) {
-    let csvFieldValue
-    if (selectIndex === 0) {
-      csvFieldValue = this.state.availableFieldsState[index].fieldValue
-    } else {
-      csvFieldValue = selectIndex
-    }
+    const csvFieldValue = (selectIndex === 0)
+      ? this.state.availableFieldsState[index].fieldValue
+      : selectIndex
     const mappingSource = (selectIndex === 0) ? TEXT : TABLE
     const pdfFieldName = this.state.pdfFields[index].fieldName
     this.setState(
       prevState => {
-        let newFieldMappingsEntry
-        if (csvFieldValue === "") {
-          newFieldMappingsEntry = undefined
-        } else {
-          newFieldMappingsEntry = {
-            fieldName: pdfFieldName,
-            mapping: mappingSource === TABLE
-              ? {
-                  source: TABLE,
-                  columnNumber: csvFieldValue,
-                }
-              : {
-                  source: TEXT,
-                  text: csvFieldValue,
-                }
-          }
-        }
+        const newFieldMappingsEntry = (csvFieldValue === "")
+          ? undefined
+          : {
+              fieldName: pdfFieldName,
+              mapping: mappingSource === TABLE
+                ? {
+                    source: TABLE,
+                    columnNumber: csvFieldValue,
+                  }
+                : {
+                    source: TEXT,
+                    text: csvFieldValue,
+                  }
+            }
         const fieldMappings = [...prevState.fieldMappings]
         fieldMappings[index] = newFieldMappingsEntry
         return {fieldMappings}
@@ -132,10 +126,17 @@ export default class App extends React.Component {
   }
 
   setAvailableFieldsState(index, setting) {
-    this.setState(prevState =>
-      ({availableFieldsState: prevState.availableFieldsState.map((element, i) =>
-        (i === index) ? Object.assign({}, element, setting) : element
-      )}))
+    this.setState(
+      prevState =>
+        ({
+          availableFieldsState: prevState.availableFieldsState.map(
+            (element, i) =>
+              (i === index)
+                ? Object.assign({}, element, setting)
+                : element
+          )
+        })
+    )
   }
 
   render() {
