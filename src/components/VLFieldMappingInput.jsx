@@ -10,10 +10,10 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        shouldSetFieldMappings: true,
+        shouldSetFieldMapping: true,
         selectedIndex: selectedIndex,
         state: {
-                 selectIndex: selectedIndex,
+                 selectedIndex: selectedIndex,
                  canEdit: selectedIndex === 0
                }
       }
@@ -24,7 +24,7 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        shouldSetFieldMappings: true,
+        shouldSetFieldMapping: true,
         selectedIndex: 0,
         state: {
                  isEditingCustomValue: false
@@ -41,7 +41,7 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        shouldSetFieldMappings: false,
+        shouldSetFieldMapping: false,
         state: {
                  fieldValue: event.target.value
                }
@@ -53,7 +53,7 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        shouldSetFieldMappings: false,
+        shouldSetFieldMapping: false,
         state: {
                  isEditingCustomValue: true
                }
@@ -64,7 +64,7 @@ const VLFieldMappingInput = (props) => {
     <div>
       <select
         onChange={selectHandler}
-        value={props.state.selectIndex}
+        value={props.state.selectedIndex}
         style={{maxWidth: '13em',
         height: '1.5em',
         display: props.state.isEditingCustomValue ? 'none' : 'initial'}}>

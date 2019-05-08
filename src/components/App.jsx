@@ -29,7 +29,7 @@ export default class App extends React.Component {
       canEdit: true,
       isEditingCustomValue: false,
       fieldValue: element.fieldValue,
-      selectIndex: 0
+      selectedIndex: 0
     })
 
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
@@ -106,7 +106,7 @@ export default class App extends React.Component {
               ? Object.assign({}, element, flags.state)
               : element
         )
-        if (flags.shouldSetFieldMappings) {
+        if (flags.shouldSetFieldMapping) {
           const csvFieldValue = (flags.selectedIndex === 0)
             ? prevState.availableFieldsState[index].fieldValue
             : flags.selectedIndex
