@@ -6,30 +6,30 @@ const VLFieldMappingInput = (props) => {
       key={`${csvElement.columnNumber}-col`}>{csvElement.fieldName}</option>)
 
   const selectHandler = event => {
-    const selectIndex = event.target.options.selectedIndex
-    props.setAvailableFieldsState(
+    const selectedIndex = event.target.options.selectedIndex
+    props.setFieldMapping(
       props.index,
       {
-        selectIndex: selectIndex,
-        canEdit: selectIndex === 0
+        shouldSetFieldMappings: true,
+        selectedIndex: selectedIndex,
+        state: {
+                 selectIndex: selectedIndex,
+                 canEdit: selectedIndex === 0
+               }
       }
-    )
-    props.onFieldMappingChange(
-      props.index,
-      selectIndex
     )
   }
 
   const submitCustomValue = () => {
-    props.setAvailableFieldsState(
+    props.setFieldMapping(
       props.index,
       {
-        isEditingCustomValue: false
+        shouldSetFieldMappings: true,
+        selectedIndex: 0,
+        state: {
+                 isEditingCustomValue: false
+               }
       }
-    )
-    props.onFieldMappingChange(
-      props.index,
-      0
     )
   }
 
@@ -38,13 +38,27 @@ const VLFieldMappingInput = (props) => {
       submitCustomValue()
       return
     }
-    props.setAvailableFieldsState(
+    props.setFieldMapping(
       props.index,
       {
-        fieldValue: event.target.value
+        shouldSetFieldMappings: false,
+        state: {
+                 fieldValue: event.target.value
+               }
       }
     )
   }
+
+  const changeToEdit = () =>
+    props.setFieldMapping(
+      props.index,
+      {
+        shouldSetFieldMappings: false,
+        state: {
+                 isEditingCustomValue: true
+               }
+      }
+    )
 
   return (
     <div>
@@ -68,7 +82,7 @@ const VLFieldMappingInput = (props) => {
         display: props.state.isEditingCustomValue ? 'none' : 'initial',
         height: '1.5em'}}
         disabled={!props.state.canEdit}
-        onClick={() => props.setAvailableFieldsState(props.index, {isEditingCustomValue: true})}>p</button>
+        onClick={changeToEdit}>p</button>
       <button style={{width: '2em',
         height: '1.5em',
         display: props.state.isEditingCustomValue ? 'initial' : 'none'}}

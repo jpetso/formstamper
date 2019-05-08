@@ -31,8 +31,7 @@ const VLAvailableFields = (props) => {
               csvFields={props.csvFields}
               state={props.availableFieldsState[index]}
               index={index}
-              setAvailableFieldsState={props.setAvailableFieldsState}
-              onFieldMappingChange={props.onFieldMappingChange}/>)}
+              setFieldMapping={props.setFieldMapping}/>)}
       </div>
       <div style={{fontSize: '10em',
         display: props.csvFields.length === 0 ? 'initial' : 'none'}}>2</div>

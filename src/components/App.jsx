@@ -15,8 +15,7 @@ export default class App extends React.Component {
     super(props);
     this.onLoadCSVFile = this.onLoadCSVFile.bind(this)
     this.onLoadPDFFile = this.onLoadPDFFile.bind(this)
-    this.onFieldMappingChange = this.onFieldMappingChange.bind(this)
-    this.setAvailableFieldsState = this.setAvailableFieldsState.bind(this)
+    this.setFieldMapping = this.setFieldMapping.bind(this)
     this.state = {
       pdfFields: [],
       csvFields: [],
@@ -97,46 +96,39 @@ export default class App extends React.Component {
         this.state.fieldMappings.filter(element => typeof element !== 'undefined'))
   }
 
-  onFieldMappingChange(index, selectIndex) {
-    const csvFieldValue = (selectIndex === 0)
-      ? this.state.availableFieldsState[index].fieldValue
-      : selectIndex
-    const mappingSource = (selectIndex === 0) ? TEXT : TABLE
-    const pdfFieldName = this.state.pdfFields[index].fieldName
+  setFieldMapping(index, flags) {
     this.setState(
       prevState => {
-        const newFieldMappingsEntry = (csvFieldValue === "")
-          ? undefined
-          : {
-              fieldName: pdfFieldName,
-              mapping: mappingSource === TABLE
-                ? {
-                    source: TABLE,
-                    columnNumber: csvFieldValue,
-                  }
-                : {
-                    source: TEXT,
-                    text: csvFieldValue,
-                  }
-            }
-        const fieldMappings = [...prevState.fieldMappings]
-        fieldMappings[index] = newFieldMappingsEntry
-        return {fieldMappings: fieldMappings}
-      })
-  }
-
-  setAvailableFieldsState(index, setting) {
-    this.setState(
-      prevState =>
-        ({
-          availableFieldsState: prevState.availableFieldsState.map(
-            (element, i) =>
-              (i === index)
-                ? Object.assign({}, element, setting)
-                : element
-          )
-        })
-    )
+        let partialState = {}
+        partialState.availableFieldsState = prevState.availableFieldsState.map(
+          (element, i) =>
+            (i === index)
+              ? Object.assign({}, element, flags.state)
+              : element
+        )
+        if (flags.shouldSetFieldMappings) {
+          const csvFieldValue = (flags.selectedIndex === 0)
+            ? prevState.availableFieldsState[index].fieldValue
+            : flags.selectedIndex
+          partialState.fieldMappings = [...prevState.fieldMappings]
+          partialState.fieldMappings[index] = (csvFieldValue === "")
+            ? undefined
+            : {
+                fieldName: prevState.pdfFields[index].fieldName,
+                mapping: flags.selectedIndex === 0
+                  ? {
+                      source: TEXT,
+                      text: csvFieldValue,
+                    }
+                  : {
+                      source: TABLE,
+                      columnNumber: csvFieldValue,
+                    }
+              }
+        }
+        return partialState
+      }
+    , console.log(this.state))
   }
 
   render() {
@@ -166,11 +158,10 @@ export default class App extends React.Component {
         <VLAvailableFields
           csvFields={this.state.csvFields}
           pdfFields={this.state.pdfFields}
-          onFieldMappingChange={this.onFieldMappingChange}
           width={WIDTH_OF_COLUMN}
           text={TEXT}
+          setFieldMapping={this.setFieldMapping}
           availableFieldsState={this.state.availableFieldsState}
-          setAvailableFieldsState={this.setAvailableFieldsState}
         />
 
         <div>
