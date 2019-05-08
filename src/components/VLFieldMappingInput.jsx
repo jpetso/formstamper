@@ -5,23 +5,46 @@ const VLFieldMappingInput = (props) => {
     <option value={csvElement.columnNumber}
       key={`${csvElement.columnNumber}-col`}>{csvElement.fieldName}</option>)
 
-  const selectHandler = event => props.updateFieldMappings(
-    props.pdfElement.fieldName,
-    event.target.value,
-    props.index,
-    event.target.options.selectedIndex)
+  const selectHandler = event => {
+    const selectIndex = event.target.options.selectedIndex
+    props.setAvailableFieldsState(
+      props.index,
+      {
+        selectIndex,
+        canEdit: selectIndex === 0
+      }
+    )
+    props.onFieldMappingChange(
+      props.index,
+      selectIndex
+    )
+  }
 
+  const submitCustomValue = () => {
+    props.setAvailableFieldsState(
+      props.index,
+      {
+        isEditingCustomValue: false
+      }
+    )
+    props.onFieldMappingChange(
+      props.index,
+      0
+    )
+  }
 
-  const inputHandler = event => props.updateFieldValue(
-    event,
-    props.pdfElement.fieldName,
-    props.text,
-    props.index)
-
-  const okButtonHandler = () => props.submitCustomValue(
-    props.pdfElement,
-    props.text,
-    props.index)
+  const inputHandler = event => {
+    if(event.key == 'Enter') {
+      submitCustomValue()
+      return
+    }
+    props.setAvailableFieldsState(
+      props.index,
+      {
+        fieldValue: event.target.value
+      }
+    )
+  }
 
   return (
     <div>
@@ -32,7 +55,7 @@ const VLFieldMappingInput = (props) => {
         height: '1.5em',
         display: props.state.isEditingCustomValue ? 'none' : 'initial'}}>
         <option value={props.state.fieldValue}>{props.state.fieldValue === ''
-          ? props.empty : `Text: "${props.state.fieldValue}"`}</option>
+          ? "<empty>" : `Text: "${props.state.fieldValue}"`}</option>
         {options}
       </select>
       <input type="text" style={{width: '12.75em',
@@ -45,11 +68,11 @@ const VLFieldMappingInput = (props) => {
         display: props.state.isEditingCustomValue ? 'none' : 'initial',
         height: '1.5em'}}
         disabled={!props.state.canEdit}
-        onClick={() => props.editCustomValue(props.index)}>p</button>
+        onClick={() => props.setAvailableFieldsState(props.index, {isEditingCustomValue: true})}>p</button>
       <button style={{width: '2em',
         height: '1.5em',
         display: props.state.isEditingCustomValue ? 'initial' : 'none'}}
-        onClick={okButtonHandler}>ok</button>
+        onClick={submitCustomValue}>ok</button>
     </div>
   )
 }

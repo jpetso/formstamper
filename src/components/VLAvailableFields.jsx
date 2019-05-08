@@ -27,17 +27,11 @@ const VLAvailableFields = (props) => {
             <VLFieldMappingInput
               key={`${pdfElement.fieldName}Div2`}
               text={props.text}
-              empty={props.empty}
               width={props.width}
               csvFields={props.csvFields}
-              pdfFields={props.pdfFields}
-              pdfElement={pdfElement}
               state={props.availableFieldsState[index]}
-              updateFieldMappings={props.updateFieldMappings}
-              updateFieldValue={props.updateFieldValue}
-              editCustomValue={props.editCustomValue}
-              submitCustomValue={props.submitCustomValue}
               index={index}
+              setAvailableFieldsState={props.setAvailableFieldsState}
               onFieldMappingChange={props.onFieldMappingChange}/>)}
       </div>
       <div style={{fontSize: '10em',
