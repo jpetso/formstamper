@@ -36,7 +36,7 @@ export default class App extends React.Component {
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
       this.setState(prevState => ({
         pdfFields: fields,
-        pdfTemplatePath,
+        pdfTemplatePath: pdfTemplatePath,
         fieldMappings: [],
         availableFieldsState: prevState.pdfFields.map(mapPdfFields)
       }))
@@ -55,7 +55,7 @@ export default class App extends React.Component {
     })
   }
 
-  onLoadPDFFile(){
+  onLoadPDFFile() {
     const filenames = dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
@@ -121,7 +121,7 @@ export default class App extends React.Component {
             }
         const fieldMappings = [...prevState.fieldMappings]
         fieldMappings[index] = newFieldMappingsEntry
-        return {fieldMappings}
+        return {fieldMappings: fieldMappings}
       })
   }
 

@@ -10,7 +10,7 @@ const VLFieldMappingInput = (props) => {
     props.setAvailableFieldsState(
       props.index,
       {
-        selectIndex,
+        selectIndex: selectIndex,
         canEdit: selectIndex === 0
       }
     )
