@@ -10,7 +10,6 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        shouldSetFieldMapping: true,
         selectedIndex: selectedIndex,
         state: {
                  selectedIndex: selectedIndex,
@@ -24,7 +23,6 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        shouldSetFieldMapping: true,
         selectedIndex: 0,
         state: {
                  isEditingCustomValue: false
@@ -41,7 +39,6 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        shouldSetFieldMapping: false,
         state: {
                  fieldValue: event.target.value
                }
@@ -53,7 +50,6 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        shouldSetFieldMapping: false,
         state: {
                  isEditingCustomValue: true
                }

@@ -96,26 +96,26 @@ export default class App extends React.Component {
         this.state.fieldMappings.filter(element => typeof element !== 'undefined'))
   }
 
-  setFieldMapping(index, flags) {
+  setFieldMapping(index, updates) {
     this.setState(
       prevState => {
         let partialState = {}
         partialState.availableFieldsState = prevState.availableFieldsState.map(
           (element, i) =>
             (i === index)
-              ? Object.assign({}, element, flags.state)
+              ? Object.assign({}, element, updates.state)
               : element
         )
-        if (flags.shouldSetFieldMapping) {
-          const csvFieldValue = (flags.selectedIndex === 0)
+        if (typeof updates.selectedIndex !== 'undefined') {
+          const csvFieldValue = (updates.selectedIndex === 0)
             ? prevState.availableFieldsState[index].fieldValue
-            : flags.selectedIndex
+            : updates.selectedIndex
           partialState.fieldMappings = [...prevState.fieldMappings]
           partialState.fieldMappings[index] = (csvFieldValue === "")
             ? undefined
             : {
                 fieldName: prevState.pdfFields[index].fieldName,
-                mapping: flags.selectedIndex === 0
+                mapping: updates.selectedIndex === 0
                   ? {
                       source: TEXT,
                       text: csvFieldValue,
