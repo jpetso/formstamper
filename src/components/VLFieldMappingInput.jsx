@@ -1,79 +1,90 @@
 import React from 'react'
 
-export default class VLFieldMappingInput extends React.Component {
-  constructor(props) {
-    super(props)
-    this.mapInput = this.mapInput.bind(this)
-    this.editCustomValue = this.editCustomValue.bind(this)
-    this.submitCustomValue = this.submitCustomValue.bind(this)
-    this.updateFieldValue = this.updateFieldValue.bind(this)
-    this.state = {
-      canEdit: true,
-      isEditingCustomValue: false,
-      fieldValue: this.props.pdfElement.fieldValue
-    }
-  }
+const VLFieldMappingInput = (props) => {
+  const options = props.csvFields.map(csvElement =>
+    <option value={csvElement.columnNumber}
+      key={`${csvElement.columnNumber}-col`}>{csvElement.fieldName}</option>)
 
-  editCustomValue() {
-    this.setState({isEditingCustomValue: true})
-  }
-
-  submitCustomValue(event) {
-    this.setState({isEditingCustomValue: false})
-    this.props.onFieldMappingChange(
-      this.state.fieldValue,
-      this.props.pdfElement.fieldName,
-      this.props.text)
-  }
-
-  mapInput(event) {
-    this.setState({canEdit: event.target.options.selectedIndex === 0})
-    this.props.onFieldMappingChange(
-      event.target.value,
-      this.props.pdfElement.fieldName,
-      (event.target.options.selectedIndex === 0) ?
-        this.props.text : this.props.table)
-  }
-
-  updateFieldValue(event) {
-    if(event.key == 'Enter') {
-      this.submitCustomValue(event)
-      return
-    }
-    this.setState({fieldValue: event.target.value})
-  }
-
-  render() {
-    const options = this.props.csvFields.map(csvElement =>
-      <option value={csvElement.columnNumber}
-        key={`${csvElement.columnNumber}-col`}>{csvElement.fieldName}</option>)
-
-    return (
-      <div>
-        <select
-          onChange={this.mapInput}
-          style={{maxWidth: '13em',
-          height: '1.5em',
-          display: this.state.isEditingCustomValue ? 'none' : 'initial'}}>
-          <option value={this.state.fieldValue}>{this.state.fieldValue === ''
-            ? this.props.empty : `Text: "${this.state.fieldValue}"`}</option>
-          {options}
-        </select>
-        <input type="text" style={{width: '12.75em',
-          height: '1em',
-          display: this.state.isEditingCustomValue ? 'initial' : 'none'}}
-          onChange={this.updateFieldValue}
-          onKeyPress={this.updateFieldValue}></input>
-        <button style={{width: '2em',
-          display: this.state.isEditingCustomValue ? 'none' : 'initial',
-          height: '1.5em'}}
-          disabled={!this.state.canEdit}
-          onClick={this.editCustomValue}>p</button>
-        <button style={{width: '2em',
-          height: '1.5em',
-          display: this.state.isEditingCustomValue ? 'initial' : 'none'}}
-          onClick={this.submitCustomValue}>ok</button>
-      </div>
+  const selectHandler = event => {
+    const selectedIndex = event.target.options.selectedIndex
+    props.setFieldMapping(
+      props.index,
+      {
+        selectedIndex: selectedIndex,
+        state: {
+                 selectedIndex: selectedIndex,
+                 canEdit: selectedIndex === 0
+               }
+      }
     )
   }
+
+  const submitCustomValue = () => {
+    props.setFieldMapping(
+      props.index,
+      {
+        selectedIndex: 0,
+        state: {
+                 isEditingCustomValue: false
+               }
+      }
+    )
+  }
+
+  const inputHandler = event => {
+    if(event.key == 'Enter') {
+      submitCustomValue()
+      return
+    }
+    props.setFieldMapping(
+      props.index,
+      {
+        state: {
+                 fieldValue: event.target.value
+               }
+      }
+    )
+  }
+
+  const changeToEdit = () =>
+    props.setFieldMapping(
+      props.index,
+      {
+        state: {
+                 isEditingCustomValue: true
+               }
+      }
+    )
+
+  return (
+    <div>
+      <select
+        onChange={selectHandler}
+        value={props.state.selectedIndex}
+        style={{maxWidth: '13em',
+        height: '1.5em',
+        display: props.state.isEditingCustomValue ? 'none' : 'initial'}}>
+        <option value={props.state.fieldValue}>{props.state.fieldValue === ''
+          ? "<empty>" : `Text: "${props.state.fieldValue}"`}</option>
+        {options}
+      </select>
+      <input type="text" style={{width: '12.75em',
+        height: '1em',
+        display: props.state.isEditingCustomValue ? 'initial' : 'none'}}
+        value={props.state.fieldValue}
+        onChange={inputHandler}
+        onKeyPress={inputHandler}></input>
+      <button style={{width: '2em',
+        display: props.state.isEditingCustomValue ? 'none' : 'initial',
+        height: '1.5em'}}
+        disabled={!props.state.canEdit}
+        onClick={changeToEdit}>p</button>
+      <button style={{width: '2em',
+        height: '1.5em',
+        display: props.state.isEditingCustomValue ? 'initial' : 'none'}}
+        onClick={submitCustomValue}>ok</button>
+    </div>
+  )
 }
+
+export default VLFieldMappingInput

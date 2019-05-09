@@ -23,17 +23,15 @@ const VLAvailableFields = (props) => {
         display: props.pdfFields.length === 0 ? 'initial' : 'none'}}>1</div>
       <div style={{display: props.csvFields.length === 0 ? 'none' : 'grid'}}>
         {props.csvFields.length === 0 ? [] :
-          props.pdfFields.map(pdfElement =>
+          props.pdfFields.map((pdfElement, index) =>
             <VLFieldMappingInput
               key={`${pdfElement.fieldName}Div2`}
-              table={props.table}
               text={props.text}
-              empty={props.empty}
               width={props.width}
               csvFields={props.csvFields}
-              pdfFields={props.pdfFields}
-              pdfElement={pdfElement}
-              onFieldMappingChange={props.onFieldMappingChange}/>)}
+              state={props.availableFieldsState[index]}
+              index={index}
+              setFieldMapping={props.setFieldMapping}/>)}
       </div>
       <div style={{fontSize: '10em',
         display: props.csvFields.length === 0 ? 'initial' : 'none'}}>2</div>

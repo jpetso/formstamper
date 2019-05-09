@@ -6,7 +6,6 @@ import VLButton from './VLButton'
 import VLAvailableFields from './VLAvailableFields'
 
 const { dialog } = remote
-const EMPTY = "<empty>"
 const TABLE = "table"
 const TEXT = "text"
 const WIDTH_OF_COLUMN = '15em'
@@ -16,62 +15,42 @@ export default class App extends React.Component {
     super(props);
     this.onLoadCSVFile = this.onLoadCSVFile.bind(this)
     this.onLoadPDFFile = this.onLoadPDFFile.bind(this)
-    this.resetFieldMappings = this.resetFieldMappings.bind(this)
-    this.onFieldMappingChange = this.onFieldMappingChange.bind(this)
+    this.setFieldMapping = this.setFieldMapping.bind(this)
     this.state = {
       pdfFields: [],
       csvFields: [],
       previewSrc: '',
       pdfTemplatePath: '',
-      fieldMappings: []
+      fieldMappings: [],
+      availableFieldsState: [],
     }
 
+    const mapPdfFields = element => ({
+      canEdit: true,
+      isEditingCustomValue: false,
+      fieldValue: element.fieldValue,
+      selectedIndex: 0
+    })
+
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
-      const updates = this.resetFieldMappings(this.state.csvFields, fields)
-      updates.pdfTemplatePath = pdfTemplatePath
-      this.setState(updates)
+      this.setState(prevState => ({
+        pdfFields: fields,
+        pdfTemplatePath: pdfTemplatePath,
+        fieldMappings: [],
+        availableFieldsState: prevState.pdfFields.map(mapPdfFields)
+      }))
     })
 
     ipcRenderer.on('csv-fields-available', (event, csvPath, fields) => {
-      this.setState(this.resetFieldMappings(fields, this.state.pdfFields))
+      this.setState(prevState => ({
+        csvFields: fields,
+        fieldMappings: [],
+        availableFieldsState: prevState.pdfFields.map(mapPdfFields)
+      }))
     })
 
     ipcRenderer.on('pdf-preview-updated', (event, pdfTemplatePath, imgsrc) => {
       this.setState({ previewSrc: imgsrc })
-    })
-  }
-
-  resetFieldMappings(csvFields, pdfFields) {
-    return {
-      pdfFields: pdfFields,
-      csvFields: csvFields,
-      fieldMappings: []
-    }
-  }
-
-  onFieldMappingChange(csvFieldValue, pdfFieldName, mappingSource) {
-    this.setState(previousState => {
-      let fieldMappings = [...previousState.fieldMappings]
-      let index = fieldMappings.findIndex(element =>
-        element.fieldName === pdfFieldName)
-      index = (index === -1) ? fieldMappings.length : index
-      fieldMappings.splice(index, 1)
-
-      const newEntry = csvFieldValue === EMPTY ? [] :
-        {
-          fieldName: pdfFieldName,
-          mapping: mappingSource === TABLE
-            ? {
-                source: 'table',
-                columnNumber: parseInt(csvFieldValue)
-              }
-            : {
-                source: 'text',
-                text: csvFieldValue,
-              }
-        }
-
-      return { fieldMappings: [...fieldMappings, newEntry] }
     })
   }
 
@@ -114,7 +93,41 @@ export default class App extends React.Component {
 
     ipcRenderer.send('generate-pdfs', this.state.pdfTemplatePath,
         dirnames[0] + path.sep + 'Tax Receipt {@TR_NUMBER} - {@NAME}.pdf',
-        this.state.fieldMappings)
+        this.state.fieldMappings.filter(element => typeof element !== 'undefined'))
+  }
+
+  setFieldMapping(index, updates) {
+    this.setState(
+      prevState => {
+        let partialState = {}
+        partialState.availableFieldsState = prevState.availableFieldsState.map(
+          (element, i) =>
+            (i === index)
+              ? Object.assign({}, element, updates.state)
+              : element
+        )
+        if (typeof updates.selectedIndex !== 'undefined') {
+          const csvFieldValue = (updates.selectedIndex === 0)
+            ? prevState.availableFieldsState[index].fieldValue
+            : updates.selectedIndex
+          partialState.fieldMappings = [...prevState.fieldMappings]
+          partialState.fieldMappings[index] = (csvFieldValue === "")
+            ? undefined
+            : {
+                fieldName: prevState.pdfFields[index].fieldName,
+                mapping: updates.selectedIndex === 0
+                  ? {
+                      source: TEXT,
+                      text: csvFieldValue,
+                    }
+                  : {
+                      source: TABLE,
+                      columnNumber: csvFieldValue,
+                    }
+              }
+        }
+        return partialState
+      })
   }
 
   render() {
@@ -144,11 +157,10 @@ export default class App extends React.Component {
         <VLAvailableFields
           csvFields={this.state.csvFields}
           pdfFields={this.state.pdfFields}
-          onFieldMappingChange={this.onFieldMappingChange}
           width={WIDTH_OF_COLUMN}
-          empty={EMPTY}
-          table={TABLE}
           text={TEXT}
+          setFieldMapping={this.setFieldMapping}
+          availableFieldsState={this.state.availableFieldsState}
         />
 
         <div>
