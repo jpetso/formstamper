@@ -25,7 +25,7 @@ export default class App extends React.Component {
       availableFieldsState: [],
     }
 
-    const mapPdfFields = element => ({
+    const mapPdfFieldsToAvailableFields = element => ({
       canEdit: true,
       isEditingCustomValue: false,
       fieldValue: element.fieldValue,
@@ -37,7 +37,7 @@ export default class App extends React.Component {
         pdfFields: fields,
         pdfTemplatePath: pdfTemplatePath,
         fieldMappings: [],
-        availableFieldsState: prevState.pdfFields.map(mapPdfFields)
+        availableFieldsState: fields.map(mapPdfFieldsToAvailableFields)
       }))
     })
 
@@ -45,7 +45,7 @@ export default class App extends React.Component {
       this.setState(prevState => ({
         csvFields: fields,
         fieldMappings: [],
-        availableFieldsState: prevState.pdfFields.map(mapPdfFields)
+        availableFieldsState: prevState.pdfFields.map(mapPdfFieldsToAvailableFields)
       }))
     })
 
