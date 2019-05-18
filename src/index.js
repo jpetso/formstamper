@@ -117,26 +117,26 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
 
   const pdfOutputPathReplacements = {}
   {
-    const pdfFieldNameRegex = /{@\S+}/g
-    const csvColumnNumberRegex = /{#[0-9]+}/g
+    const pdfFieldNameRegex = /{@\S+}/g;
+    const csvColumnNumberRegex = /{#[0-9]+}/g;
 
     const fieldNameReplacements = fieldMappings.reduce((replacements, mapping) => {
       replacements['{@' + mapping.fieldName + '}'] = [ mapping.mapping ]
       return replacements
-    }, {})
+    }, {});
 
-    for (const match of (pdfOutputPathTemplate.match(pdfFieldNameRegex) || [])) {
+    (pdfOutputPathTemplate.match(pdfFieldNameRegex) || []).forEach(function(match) {
       if (fieldNameReplacements[match] !== undefined) {
         pdfOutputPathReplacements[match] = fieldNameReplacements[match]
       }
-    }
+    });
 
-    for (const match of (pdfOutputPathTemplate.match(csvColumnNumberRegex) || [])) {
+    (pdfOutputPathTemplate.match(csvColumnNumberRegex) || []).forEach(function(match) {
       pdfOutputPathReplacements[match] = [ {
         source: 'table',
         columnNumber: parseInt(match.substr(2, match.length - 1)) // exclude '{#' and '}'
       } ]
-    }
+    });
   }
 
   console.log('Path template replacements: ')
@@ -145,16 +145,14 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
   const generatedPdfs = []
   const errors = []
   const skipRows = 1
-  let rowNumber = 0
 
   let pdftkPromises = []
 
-  for (const row of csvRows) {
-    ++rowNumber
-
-    if (rowNumber <= skipRows) {
-      continue
+  csvRows.forEach((row, index) => {
+    if (index < skipRows) {
+      return
     }
+    const rowNumber = index + 1
 
     const concreteMappings = fieldMappings.reduce((filledFormFields, fieldMapping) => {
       if (fieldMapping.mapping.source == 'table'
@@ -202,7 +200,7 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
           })
           console.log('Error: ' + err.name + ': ' + err.message)
         }));
-  }
+  })
 
   Promise.all(pdftkPromises, () => {
     event.sender.send('pdf-generation-finished', generatedPdfs, errors)
@@ -257,12 +255,12 @@ ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
     for (let i = 1; i <= pdfDocument.numPages; i++) {
       pagePromises.push(pdfDocument.getPage(i).then(page => {
         annotationPromises.push(page.getAnnotations().then(annotations => {
-          for (const ann of annotations) {
+          annotations.forEach((ann) => {
             if (ann.subtype != 'Widget' || ann.readOnly) {
-              continue
+              return
             }
             if (fieldsByName[ann.fieldName] !== undefined) {
-              continue
+              return
             }
             if (ann.fieldType == 'Tx') {
               fieldsByName[ann.fieldName] = {
@@ -274,7 +272,7 @@ ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
               }
               fieldNames.push(ann.fieldName)
             }
-          }
+          })
         }))
 
         // Render the page on a Node canvas with 100% scale.
