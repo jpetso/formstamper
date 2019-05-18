@@ -147,6 +147,8 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
   const skipRows = 1
   let rowNumber = 0
 
+  let pdftkPromises = []
+
   for (const row of csvRows) {
     ++rowNumber
 
@@ -173,7 +175,7 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
     console.log('Storing PDF for row #' + rowNumber + ' as ' + pdfOutputPath + '.')
     console.log(concreteMappings)
 
-    pdftk.input(pdfTemplatePath)
+    pdftkPromises.push(pdftk.input(pdfTemplatePath)
         .fillForm(concreteMappings)
         .flatten()
         .output()
@@ -186,7 +188,7 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
               pdfOutputPath: pdfOutputPath,
               rowNumber: rowNumber
             })
-            console.log('Stored PDF for row #' + rowNumber + ' as ' + pdfOutputPath + '.')
+            console.log('Stored PDF for row #' + rowNumber + ' as ' + pdfOutputPath)
           })
         })
         .catch(err => {
@@ -198,10 +200,13 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
             rowNumber: rowNumber,
             row: row
           })
-        });
+          console.log('Error: ' + err.name + ': ' + err.message)
+        }));
   }
 
-  event.sender.send('pdf-generation-finished', generatedPdfs, errors)
+  Promise.all(pdftkPromises, () => {
+    event.sender.send('pdf-generation-finished', generatedPdfs, errors)
+  })
 })
 
 ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
