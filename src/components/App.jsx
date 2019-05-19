@@ -13,24 +13,31 @@ const WIDTH_OF_COLUMN = '15em'
 export default class App extends React.Component {
   constructor(props) {
     super(props);
-    this.onLoadCSVFile = this.onLoadCSVFile.bind(this)
-    this.onLoadPDFFile = this.onLoadPDFFile.bind(this)
-    this.setFieldMapping = this.setFieldMapping.bind(this)
+    this.onLoadCSVFile = this.onLoadCSVFile.bind(this);
+    this.onLoadPDFFile = this.onLoadPDFFile.bind(this);
+    this.setFieldMapping = this.setFieldMapping.bind(this);
     this.state = {
+      systemRequirementsStatus: {},
       pdfFields: [],
       csvFields: [],
       previewSrc: '',
       pdfTemplatePath: '',
       fieldMappings: [],
       availableFieldsState: [],
-    }
+    };
 
     const mapPdfFieldsToAvailableFields = element => ({
       canEdit: true,
       isEditingCustomValue: false,
       fieldValue: element.fieldValue,
       selectedIndex: 0
-    })
+    });
+
+    ipcRenderer.on('system-requirements-status', (event, status) => {
+      this.setState({
+        systemRequirementsStatus: status,
+      });
+    });
 
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
       this.setState(prevState => ({
@@ -38,20 +45,22 @@ export default class App extends React.Component {
         pdfTemplatePath: pdfTemplatePath,
         fieldMappings: [],
         availableFieldsState: fields.map(mapPdfFieldsToAvailableFields)
-      }))
-    })
+      }));
+    });
 
     ipcRenderer.on('csv-fields-available', (event, csvPath, fields) => {
       this.setState(prevState => ({
         csvFields: fields,
         fieldMappings: [],
         availableFieldsState: prevState.pdfFields.map(mapPdfFieldsToAvailableFields)
-      }))
-    })
+      }));
+    });
 
     ipcRenderer.on('pdf-preview-updated', (event, pdfTemplatePath, imgsrc) => {
       this.setState({ previewSrc: imgsrc })
-    })
+    });
+
+    ipcRenderer.send('configure-system-requirements', {});
   }
 
   onLoadPDFFile() {
@@ -155,6 +164,7 @@ export default class App extends React.Component {
           disabledButton={this.state.pdfTemplatePath === '' || this.state.csvFields.length === 0}/>
 
         <VLAvailableFields
+          systemRequirementsStatus={this.state.systemRequirementsStatus}
           csvFields={this.state.csvFields}
           pdfFields={this.state.pdfFields}
           width={WIDTH_OF_COLUMN}

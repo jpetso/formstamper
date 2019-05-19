@@ -10,6 +10,14 @@ const VLAvailableFields = (props) => {
     overflowX: 'hidden'
   }
 
+  let placeholderFontSize = '10em';
+  let placeholderText = 1;
+
+  if (props.systemRequirementsStatus.isUsable !== true) {
+    placeholderFontSize = '100%';
+    placeholderText = 'The pdftk executable is not installed. Please download and install PDFtk Server from its website at https://www.pdflabs.com/tools/pdftk-server/ or use your system\'s package manager to install it.';
+  }
+
   return (
     <div style={containerStyle}>
       <div style={{display: props.pdfFields.length === 0 ? 'none' : 'grid'}}>
@@ -19,8 +27,10 @@ const VLAvailableFields = (props) => {
             title={pdfElement.fieldName}>{pdfElement.fieldName}
           </div>)}
       </div>
-      <div style={{fontSize: '10em',
-        display: props.pdfFields.length === 0 ? 'initial' : 'none'}}>1</div>
+      <div style={{fontSize: placeholderFontSize,
+        display: props.pdfFields.length === 0 ? 'initial' : 'none'}}>
+        {placeholderText}
+      </div>
       <div style={{display: props.csvFields.length === 0 ? 'none' : 'grid'}}>
         {props.pdfFields.map((pdfElement, index) =>
           <VLFieldMappingInput
