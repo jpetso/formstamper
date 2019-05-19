@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
 import { enableLiveReload } from 'electron-compile'
+import fixPath from 'fix-path'
 import commandExists from 'command-exists'
 import systeminformation from 'systeminformation'
 import fs from 'fs'
@@ -9,6 +10,9 @@ import pdfjsLib from 'pdfjs-dist'
 import pdftk from 'node-pdftk'
 import Canvas from 'canvas'
 import assert from 'assert'
+
+// Try to fix process.env.PATH on macOS, given command-exist's reliance on it.
+fixPath();
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
