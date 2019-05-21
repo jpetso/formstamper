@@ -106,36 +106,35 @@ export default class App extends React.Component {
   }
 
   setFieldMapping(index, updates) {
-    this.setState(
-      (prevState) => {
-        const partialState = {};
-        partialState.availableFieldsState = prevState.availableFieldsState.map(
-          (element, i) => ((i === index)
-            ? Object.assign({}, element, updates.state)
-            : element),
-        );
-        if (typeof updates.selectedIndex !== 'undefined') {
-          const csvFieldValue = (updates.selectedIndex === 0)
-            ? prevState.availableFieldsState[index].fieldValue
-            : updates.selectedIndex;
-          partialState.fieldMappings = [...prevState.fieldMappings];
-          partialState.fieldMappings[index] = (csvFieldValue === '')
-            ? undefined
-            : {
-              fieldName: prevState.pdfFields[index].fieldName,
-              mapping: updates.selectedIndex === 0
-                ? {
-                  source: TEXT,
-                  text: csvFieldValue,
-                }
-                : {
-                  source: TABLE,
-                  columnNumber: csvFieldValue,
-                },
-            };
-        }
-        return partialState;
-      });
+    this.setState((prevState) => {
+      const partialState = {};
+      partialState.availableFieldsState = prevState.availableFieldsState.map(
+        (element, i) => ((i === index)
+          ? Object.assign({}, element, updates.state)
+          : element),
+      );
+      if (typeof updates.selectedIndex !== 'undefined') {
+        const csvFieldValue = (updates.selectedIndex === 0)
+          ? prevState.availableFieldsState[index].fieldValue
+          : updates.selectedIndex;
+        partialState.fieldMappings = [...prevState.fieldMappings];
+        partialState.fieldMappings[index] = (csvFieldValue === '')
+          ? undefined
+          : {
+            fieldName: prevState.pdfFields[index].fieldName,
+            mapping: updates.selectedIndex === 0
+              ? {
+                source: TEXT,
+                text: csvFieldValue,
+              }
+              : {
+                source: TABLE,
+                columnNumber: csvFieldValue,
+              },
+          };
+      }
+      return partialState;
+    });
   }
 
   render() {
