@@ -38,7 +38,7 @@ const VLAvailableFields = (props) => {
             >
               {pdfElement.fieldName}
             </div>
-          )
+          ),
         )}
       </div>
       <div
