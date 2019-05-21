@@ -1,12 +1,18 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
 import { enableLiveReload } from 'electron-compile'
+import fixPath from 'fix-path'
+import commandExists from 'command-exists'
+import systeminformation from 'systeminformation'
 import fs from 'fs'
 import parse from 'csv-parse'
 import pdfjsLib from 'pdfjs-dist'
 import pdftk from 'node-pdftk'
 import Canvas from 'canvas'
 import assert from 'assert'
+
+// Try to fix process.env.PATH on macOS, given command-exist's reliance on it.
+fixPath();
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -65,6 +71,51 @@ app.on('activate', () => {
   if (mainWindow === null) {
     createWindow();
   }
+});
+
+ipcMain.on('configure-system-requirements', (event, options) => {
+  // The options parameter is currently unused.
+  // In the future, it could be used to supply custom
+  // executable paths or particular settings.
+
+  const allPromises = [];
+  const status = {
+    isUsable: false,
+    os: {},
+    details: {}
+  };
+
+  allPromises.push(systeminformation.osInfo().then(osinfo => {
+    status.os = {
+      platform: osinfo.platform, // 'linux', 'darwin', 'windows'
+      distro: osinfo.distro, // e.g. 'Arch'
+      build: osinfo.build,
+      arch: osinfo.arch
+    };
+    console.log('OS info:');
+    console.log(status.os);
+  }).catch(error => {
+    console.log('Couldn\'t retrieve OS info.');
+    status.os = {};
+  }));
+
+  allPromises.push(commandExists('pdftk').then(result => {
+    status.details.pdftk = {
+      isUsable: true
+    };
+    console.log('pdftk: command exists');
+  }).catch(() => {
+    console.log('pdftk: command doesn\'t exist');
+    status.details.pdftk = {
+      isUsable: false
+    };
+  }));
+
+  Promise.all(allPromises).then(() => {
+    status.isUsable = status.details.pdftk.isUsable;
+    console.log('Runtime requirements satisfied: ' + status.isUsable);
+    event.sender.send('system-requirements-status', status);
+  });
 });
 
 function replaceOutputPathTokens(outputPathTemplate, outputPathReplacements, row) {

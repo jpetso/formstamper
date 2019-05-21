@@ -49,15 +49,18 @@
   "dependencies": {
     "@hot-loader/react-dom": "npm:@hot-loader/react-dom@^16.8.3",
     "canvas": "^2.3.1",
+    "command-exists": "^1.2.8",
     "csv-parse": "^4.3.3",
     "electron-compile": "^6.4.4",
     "electron-devtools-installer": "^2.1.0",
     "electron-squirrel-startup": "^1.0.0",
+    "fix-path": "^2.1.0",
     "node-pdftk": "^2.0.2",
     "pdfjs-dist": "^2.0.943",
     "react": "^16.8.3",
     "react-dom": "npm:@hot-loader/react-dom@^16.8.3",
-    "react-hot-loader": "^4.7.2"
+    "react-hot-loader": "^4.7.2",
+    "systeminformation": "^4.5.1"
   },
   "devDependencies": {
     "babel-plugin-transform-async-to-generator": "^6.24.1",
