@@ -13,8 +13,7 @@ const WIDTH_OF_COLUMN = '15em';
 export default class App extends React.Component {
   constructor(props) {
     super(props);
-    this.onLoadCSVFile = this.onLoadCSVFile.bind(this);
-    this.onLoadPDFFile = this.onLoadPDFFile.bind(this);
+    this.onGeneratePDFs = this.onGeneratePDFs.bind(this);
     this.setFieldMapping = this.setFieldMapping.bind(this);
     this.state = {
       systemRequirementsStatus: {},
@@ -42,7 +41,7 @@ export default class App extends React.Component {
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
       this.setState({
         pdfFields: fields,
-        pdfTemplatePath: pdfTemplatePath,
+        pdfTemplatePath,
         fieldMappings: [],
         availableFieldsState: fields.map(mapPdfFieldsToAvailableFields),
       });
@@ -63,7 +62,7 @@ export default class App extends React.Component {
     ipcRenderer.send('configure-system-requirements', {});
   }
 
-  onLoadPDFFile() {
+  static onLoadPDFFile() {
     const filenames = dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
@@ -75,11 +74,10 @@ export default class App extends React.Component {
       return;
     }
 
-    const canvas = document.getElementById('pdf-preview');
     ipcRenderer.send('load-pdf-template', filenames[0]);
   }
 
-  onLoadCSVFile() {
+  static onLoadCSVFile() {
     const filenames = dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
@@ -101,14 +99,14 @@ export default class App extends React.Component {
     }
 
     ipcRenderer.send('generate-pdfs', this.state.pdfTemplatePath,
-        dirnames[0] + path.sep + 'Tax Receipt {@TR_NUMBER} - {@NAME}.pdf',
+        `${dirnames[0]}${path.sep}Tax Receipt {@TR_NUMBER} - {@NAME}.pdf`,
         this.state.fieldMappings.filter(element => typeof element !== 'undefined'));
   }
 
   setFieldMapping(index, updates) {
     this.setState((prevState) => {
-      const partialState = {};
-      partialState.availableFieldsState = prevState.availableFieldsState.map(
+      const fieldUpdates = {};
+      fieldUpdates.availableFieldsState = prevState.availableFieldsState.map(
         (element, i) => ((i === index)
           ? Object.assign({}, element, updates.state)
           : element),
@@ -117,8 +115,8 @@ export default class App extends React.Component {
         const csvFieldValue = (updates.selectedIndex === 0)
           ? prevState.availableFieldsState[index].fieldValue
           : updates.selectedIndex;
-        partialState.fieldMappings = [...prevState.fieldMappings];
-        partialState.fieldMappings[index] = (csvFieldValue === '')
+        fieldUpdates.fieldMappings = [...prevState.fieldMappings];
+        fieldUpdates.fieldMappings[index] = (csvFieldValue === '')
           ? undefined
           : {
             fieldName: prevState.pdfFields[index].fieldName,
@@ -133,7 +131,7 @@ export default class App extends React.Component {
               },
           };
       }
-      return partialState;
+      return fieldUpdates;
     });
   }
 
@@ -150,17 +148,17 @@ export default class App extends React.Component {
       <div style={appStyle}>
         <VLButton
           value={'Load PDF template'}
-          onClick={this.onLoadPDFFile}
+          onClick={App.onLoadPDFFile}
           disabledButton={false}
         />
         <VLButton
           value={'Load CSV table'}
-          onClick={this.onLoadCSVFile}
+          onClick={App.onLoadCSVFile}
           disabledButton={this.state.pdfFields.length === 0}
         />
         <VLButton
           value={'Select output folder'}
-          onClick={this.onGeneratePDFs.bind(this)}
+          onClick={this.onGeneratePDFs}
           disabledButton={this.state.pdfTemplatePath === '' || this.state.csvFields.length === 0}
         />
 

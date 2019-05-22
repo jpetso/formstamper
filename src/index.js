@@ -1,15 +1,15 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
-import { enableLiveReload } from 'electron-compile'
-import fixPath from 'fix-path'
-import commandExists from 'command-exists'
-import systeminformation from 'systeminformation'
-import fs from 'fs'
-import parse from 'csv-parse'
-import pdfjsLib from 'pdfjs-dist'
-import pdftk from 'node-pdftk'
-import Canvas from 'canvas'
-import assert from 'assert'
+import { app, BrowserWindow, ipcMain } from 'electron';
+import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
+import { enableLiveReload } from 'electron-compile';
+import fixPath from 'fix-path';
+import commandExists from 'command-exists';
+import systeminformation from 'systeminformation';
+import fs from 'fs';
+import parse from 'csv-parse';
+import pdfjsLib from 'pdfjs-dist';
+import pdftk from 'node-pdftk';
+import Canvas from 'canvas';
+import assert from 'assert';
 
 // Try to fix process.env.PATH on macOS, given command-exist's reliance on it.
 fixPath();
@@ -82,65 +82,65 @@ ipcMain.on('configure-system-requirements', (event, options) => {
   const status = {
     isUsable: false,
     os: {},
-    details: {}
+    details: {},
   };
 
-  allPromises.push(systeminformation.osInfo().then(osinfo => {
+  allPromises.push(systeminformation.osInfo().then((osinfo) => {
     status.os = {
       platform: osinfo.platform, // 'linux', 'darwin', 'windows'
       distro: osinfo.distro, // e.g. 'Arch'
       build: osinfo.build,
-      arch: osinfo.arch
+      arch: osinfo.arch,
     };
     console.log('OS info:');
     console.log(status.os);
-  }).catch(error => {
+  }).catch((error) => {
     console.log('Couldn\'t retrieve OS info.');
     status.os = {};
   }));
 
-  allPromises.push(commandExists('pdftk').then(result => {
+  allPromises.push(commandExists('pdftk').then((result) => {
     status.details.pdftk = {
-      isUsable: true
+      isUsable: true,
     };
     console.log('pdftk: command exists');
   }).catch(() => {
     console.log('pdftk: command doesn\'t exist');
     status.details.pdftk = {
-      isUsable: false
+      isUsable: false,
     };
   }));
 
   Promise.all(allPromises).then(() => {
     status.isUsable = status.details.pdftk.isUsable;
-    console.log('Runtime requirements satisfied: ' + status.isUsable);
+    console.log(`Runtime requirements satisfied: ${status.isUsable}`);
     event.sender.send('system-requirements-status', status);
   });
 });
 
 function replaceOutputPathTokens(outputPathTemplate, outputPathReplacements, row) {
-  const replacementStringPairs = {}
+  const replacementStringPairs = {};
 
   for (const replacedString in outputPathReplacements) {
     replacementStringPairs[replacedString] =
         outputPathReplacements[replacedString].reduce((replacementString, mapping) => {
           if (mapping.source === 'table' && mapping.columnNumber <= row.length) {
-            return replacementString + row[mapping.columnNumber - 1]
+            return replacementString + row[mapping.columnNumber - 1];
           }
           else if (mapping.source === 'text') {
-            return replacementString + mapping.text
+            return replacementString + mapping.text;
           }
-          return replacementString + '@@@'
-        }, '')
+          return `${replacementString}@@@`;
+        }, '');
   }
 
-  let outputPath = outputPathTemplate
+  let outputPath = outputPathTemplate;
 
   for (const replaced in replacementStringPairs) {
-    outputPath = outputPath.replace(replaced, replacementStringPairs[replaced])
+    outputPath = outputPath.replace(replaced, replacementStringPairs[replaced]);
   }
 
-  return outputPath
+  return outputPath;
 }
 
 ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fieldMappings) => {
@@ -163,103 +163,103 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
     ];
   */
 
-  console.log('PDF: ' + pdfTemplatePath)
-  console.log('Path template: ' + pdfOutputPathTemplate)
+  console.log(`PDF: ${pdfTemplatePath}`);
+  console.log(`Path template: ${pdfOutputPathTemplate}`);
 
-  const pdfOutputPathReplacements = {}
+  const pdfOutputPathReplacements = {};
   {
     const pdfFieldNameRegex = /{@\S+}/g;
     const csvColumnNumberRegex = /{#[0-9]+}/g;
 
     const fieldNameReplacements = fieldMappings.reduce((replacements, mapping) => {
-      replacements['{@' + mapping.fieldName + '}'] = [ mapping.mapping ]
-      return replacements
+      replacements[`{@${mapping.fieldName}}`] = [mapping.mapping];
+      return replacements;
     }, {});
 
-    (pdfOutputPathTemplate.match(pdfFieldNameRegex) || []).forEach(function(match) {
+    (pdfOutputPathTemplate.match(pdfFieldNameRegex) || []).forEach(function (match) {
       if (fieldNameReplacements[match] !== undefined) {
-        pdfOutputPathReplacements[match] = fieldNameReplacements[match]
+        pdfOutputPathReplacements[match] = fieldNameReplacements[match];
       }
     });
 
-    (pdfOutputPathTemplate.match(csvColumnNumberRegex) || []).forEach(function(match) {
-      pdfOutputPathReplacements[match] = [ {
+    (pdfOutputPathTemplate.match(csvColumnNumberRegex) || []).forEach(function (match) {
+      pdfOutputPathReplacements[match] = [{
         source: 'table',
-        columnNumber: parseInt(match.substr(2, match.length - 1)) // exclude '{#' and '}'
-      } ]
+        columnNumber: parseInt(match.substr(2, match.length - 1), 10), // exclude '{#' and '}'
+      }];
     });
   }
 
-  console.log('Path template replacements: ')
-  console.log(pdfOutputPathReplacements)
+  console.log('Path template replacements: ');
+  console.log(pdfOutputPathReplacements);
 
-  const generatedPdfs = []
-  const errors = []
-  const skipRows = 1
+  const generatedPdfs = [];
+  const errors = [];
+  const skipRows = 1;
 
-  let pdftkPromises = []
+  let pdftkPromises = [];
 
   csvRows.forEach((row, index) => {
     if (index < skipRows) {
-      return
+      return;
     }
-    const rowNumber = index + 1
+    const rowNumber = index + 1;
 
     const concreteMappings = fieldMappings.reduce((filledFormFields, fieldMapping) => {
-      if (fieldMapping.mapping.source == 'table'
+      if (fieldMapping.mapping.source === 'table'
           && fieldMapping.mapping.columnNumber <= row.length)
       {
         filledFormFields[fieldMapping.fieldName] =
-            row[fieldMapping.mapping.columnNumber - 1]
+            row[fieldMapping.mapping.columnNumber - 1];
       }
-      else if (fieldMapping.mapping.source == 'text') {
-        filledFormFields[fieldMapping.fieldName] = fieldMapping.mapping.text
+      else if (fieldMapping.mapping.source === 'text') {
+        filledFormFields[fieldMapping.fieldName] = fieldMapping.mapping.text;
       }
-      return filledFormFields
-    }, {})
+      return filledFormFields;
+    }, {});
 
     const pdfOutputPath = replaceOutputPathTokens(
-        pdfOutputPathTemplate, pdfOutputPathReplacements, row)
+        pdfOutputPathTemplate, pdfOutputPathReplacements, row);
 
-    console.log('Storing PDF for row #' + rowNumber + ' as ' + pdfOutputPath + '.')
-    console.log(concreteMappings)
+    console.log(`Storing PDF for row #${rowNumber} as ${pdfOutputPath}.`);
+    console.log(concreteMappings);
 
     pdftkPromises.push(pdftk.input(pdfTemplatePath)
         .fillForm(concreteMappings)
         .flatten()
         .output()
-        .then(buffer => {
+        .then((buffer) => {
           fs.writeFile(pdfOutputPath, buffer, function (err) {
             if (err) {
-              throw err
+              throw err;
             }
             generatedPdfs.push({
-              pdfOutputPath: pdfOutputPath,
-              rowNumber: rowNumber
-            })
-            console.log('Stored PDF for row #' + rowNumber + ' as ' + pdfOutputPath)
-          })
+              pdfOutputPath,
+              rowNumber,
+            });
+            console.log(`Stored PDF for row #${rowNumber} as ${pdfOutputPath}`);
+          });
         })
-        .catch(err => {
+        .catch((err) => {
           errors.push({
-            pdfOutputPath: pdfOutputPath,
+            pdfOutputPath,
             type: 'Exception',
             name: err.name,
             message: err.message,
-            rowNumber: rowNumber,
-            row: row
-          })
-          console.log('Error: ' + err.name + ': ' + err.message)
+            rowNumber,
+            row,
+          });
+          console.log(`Error: ${err.name}: ${err.message}`);
         }));
-  })
+  });
 
   Promise.all(pdftkPromises, () => {
-    event.sender.send('pdf-generation-finished', generatedPdfs, errors)
-  })
-})
+    event.sender.send('pdf-generation-finished', generatedPdfs, errors);
+  });
+});
 
 ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
-  console.log('Loading PDF template: ' + pdfTemplatePath)
+  console.log(`Loading PDF template: ${pdfTemplatePath}`);
 
   const rawData = new Uint8Array(fs.readFileSync(pdfTemplatePath));
   const loadingTask = pdfjsLib.getDocument(rawData);
@@ -271,8 +271,8 @@ ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
       const canvas = Canvas.createCanvas(width, height);
       const context = canvas.getContext('2d');
       return {
-        canvas: canvas,
-        context: context,
+        canvas,
+        context,
       };
     },
 
@@ -295,90 +295,90 @@ ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
     },
   };
 
-  loadingTask.promise.then(function(pdfDocument) {
+  loadingTask.promise.then(function (pdfDocument) {
     console.log('# PDF document loaded.');
 
-    const pagePromises = []
-    const annotationPromises = []
-    const fieldsByName = {}
-    const fieldNames = []
+    const pagePromises = [];
+    const annotationPromises = [];
+    const fieldsByName = {};
+    const fieldNames = [];
 
     for (let i = 1; i <= pdfDocument.numPages; i++) {
-      pagePromises.push(pdfDocument.getPage(i).then(page => {
-        annotationPromises.push(page.getAnnotations().then(annotations => {
+      pagePromises.push(pdfDocument.getPage(i).then((page) => {
+        annotationPromises.push(page.getAnnotations().then((annotations) => {
           annotations.forEach((ann) => {
-            if (ann.subtype != 'Widget' || ann.readOnly) {
-              return
+            if (ann.subtype !== 'Widget' || ann.readOnly) {
+              return;
             }
             if (fieldsByName[ann.fieldName] !== undefined) {
-              return
+              return;
             }
-            if (ann.fieldType == 'Tx') {
+            if (ann.fieldType === 'Tx') {
               fieldsByName[ann.fieldName] = {
                 fieldName: ann.fieldName,
                 fieldType: 'Text',
                 fieldValue: ann.fieldValue,
                 multiLine: ann.multiLine,
                 maxLength: ann.maxLen,
-              }
-              fieldNames.push(ann.fieldName)
+              };
+              fieldNames.push(ann.fieldName);
             }
-          })
-        }))
+          });
+        }));
 
         // Render the page on a Node canvas with 100% scale.
-        const viewport = page.getViewport(1.0)
-        const canvasFactory = new NodeCanvasFactory()
+        const viewport = page.getViewport(1.0);
+        const canvasFactory = new NodeCanvasFactory();
         const canvasAndContext =
-            canvasFactory.create(viewport.width, viewport.height)
+            canvasFactory.create(viewport.width, viewport.height);
         const renderContext = {
           canvasContext: canvasAndContext.context,
-          viewport: viewport,
-          canvasFactory: canvasFactory,
-        }
+          viewport,
+          canvasFactory,
+        };
 
-        const renderTask = page.render(renderContext)
+        const renderTask = page.render(renderContext);
         renderTask.promise.then(() => {
           // Convert the canvas to an image buffer.
-          const image = canvasAndContext.canvas.toDataURL('image/png')
-          event.sender.send('pdf-preview-updated', pdfTemplatePath, image)
-        })
-      }))
+          const image = canvasAndContext.canvas.toDataURL('image/png');
+          event.sender.send('pdf-preview-updated', pdfTemplatePath, image);
+        });
+      }));
     }
     Promise.all(pagePromises).then(() => {
       Promise.all(annotationPromises).then(() => {
         event.sender.send('pdf-fields-available', pdfTemplatePath,
             fieldNames.reduce((fields, fieldName) => {
-              fields.push(fieldsByName[fieldName])
-              return fields
-            }, []))
-      })
-    })
-  }).catch(function(reason) {
+              fields.push(fieldsByName[fieldName]);
+              return fields;
+            }, []));
+      });
+    });
+  }).catch(function (reason) {
     console.log(reason);
-  })
-})
+  });
+});
 
 ipcMain.on('load-csv', (event, csvPath) => {
-  let context = this
-  let rows = []
+  let context = this;
+  let rows = [];
   let filestream = fs.createReadStream(csvPath)
     .pipe(parse())
-    .on('data', function(row) {
-      rows.push(row)
+    .on('data', function (row) {
+      rows.push(row);
     })
-    .on('error', function(err) {
-      dialog.showErrorBox("CSV loading error", err.message);
+    .on('error', function (err) {
+      dialog.showErrorBox(`CSV loading error${err.message}`);
     })
-    .on('end', function() {
+    .on('end', function () {
       const fields = rows[0].map((field, index) => ({
         columnNumber: index + 1,
-        fieldName: field
-      }))
+        fieldName: field,
+      }));
       csvRows = rows;
-      event.sender.send('csv-fields-available', csvPath, fields)
-    })
-})
+      event.sender.send('csv-fields-available', csvPath, fields);
+    });
+});
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
