@@ -1,14 +1,14 @@
-import React from 'react'
-import { remote, ipcRenderer } from 'electron'
-import path from 'path'
-import VLHeader from './VLHeader'
-import VLButton from './VLButton'
-import VLAvailableFields from './VLAvailableFields'
+import React from 'react';
+import { remote, ipcRenderer } from 'electron';
+import path from 'path';
+import VLHeader from './VLHeader';
+import VLButton from './VLButton';
+import VLAvailableFields from './VLAvailableFields';
 
-const { dialog } = remote
-const TABLE = "table"
-const TEXT = "text"
-const WIDTH_OF_COLUMN = '15em'
+const { dialog } = remote;
+const TABLE = 'table';
+const TEXT = 'text';
+const WIDTH_OF_COLUMN = '15em';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -30,7 +30,7 @@ export default class App extends React.Component {
       canEdit: true,
       isEditingCustomValue: false,
       fieldValue: element.fieldValue,
-      selectedIndex: 0
+      selectedIndex: 0,
     });
 
     ipcRenderer.on('system-requirements-status', (event, status) => {
@@ -40,24 +40,24 @@ export default class App extends React.Component {
     });
 
     ipcRenderer.on('pdf-fields-available', (event, pdfTemplatePath, fields) => {
-      this.setState(prevState => ({
+      this.setState({
         pdfFields: fields,
         pdfTemplatePath: pdfTemplatePath,
         fieldMappings: [],
-        availableFieldsState: fields.map(mapPdfFieldsToAvailableFields)
-      }));
+        availableFieldsState: fields.map(mapPdfFieldsToAvailableFields),
+      });
     });
 
     ipcRenderer.on('csv-fields-available', (event, csvPath, fields) => {
       this.setState(prevState => ({
         csvFields: fields,
         fieldMappings: [],
-        availableFieldsState: prevState.pdfFields.map(mapPdfFieldsToAvailableFields)
+        availableFieldsState: prevState.pdfFields.map(mapPdfFieldsToAvailableFields),
       }));
     });
 
     ipcRenderer.on('pdf-preview-updated', (event, pdfTemplatePath, imgsrc) => {
-      this.setState({ previewSrc: imgsrc })
+      this.setState({ previewSrc: imgsrc });
     });
 
     ipcRenderer.send('configure-system-requirements', {});
@@ -68,15 +68,15 @@ export default class App extends React.Component {
       properties: ['openFile'],
       filters: [
         { name: 'PDF files', extensions: ['pdf'] },
-        { name: 'All Files', extensions: ['*'] }
-      ]
-    })
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    });
     if (!Array.isArray(filenames) || filenames.length !== 1) {
-      return
+      return;
     }
 
     const canvas = document.getElementById('pdf-preview');
-    ipcRenderer.send('load-pdf-template', filenames[0])
+    ipcRenderer.send('load-pdf-template', filenames[0]);
   }
 
   onLoadCSVFile() {
@@ -84,59 +84,57 @@ export default class App extends React.Component {
       properties: ['openFile'],
       filters: [
         { name: 'CSV files', extensions: ['csv'] },
-        { name: 'All Files', extensions: ['*'] }
-      ]
-    })
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    });
     if (!Array.isArray(filenames) || filenames.length !== 1) {
-      return
+      return;
     }
 
-    ipcRenderer.send('load-csv', filenames[0])
+    ipcRenderer.send('load-csv', filenames[0]);
   }
 
   onGeneratePDFs() {
-    const dirnames = dialog.showOpenDialog({properties: ['openDirectory']})
+    const dirnames = dialog.showOpenDialog({ properties: ['openDirectory'] });
     if (!Array.isArray(dirnames) || dirnames.length !== 1) {
-      return
+      return;
     }
 
     ipcRenderer.send('generate-pdfs', this.state.pdfTemplatePath,
         dirnames[0] + path.sep + 'Tax Receipt {@TR_NUMBER} - {@NAME}.pdf',
-        this.state.fieldMappings.filter(element => typeof element !== 'undefined'))
+        this.state.fieldMappings.filter(element => typeof element !== 'undefined'));
   }
 
   setFieldMapping(index, updates) {
-    this.setState(
-      prevState => {
-        let partialState = {}
-        partialState.availableFieldsState = prevState.availableFieldsState.map(
-          (element, i) =>
-            (i === index)
-              ? Object.assign({}, element, updates.state)
-              : element
-        )
-        if (typeof updates.selectedIndex !== 'undefined') {
-          const csvFieldValue = (updates.selectedIndex === 0)
-            ? prevState.availableFieldsState[index].fieldValue
-            : updates.selectedIndex
-          partialState.fieldMappings = [...prevState.fieldMappings]
-          partialState.fieldMappings[index] = (csvFieldValue === "")
-            ? undefined
-            : {
-                fieldName: prevState.pdfFields[index].fieldName,
-                mapping: updates.selectedIndex === 0
-                  ? {
-                      source: TEXT,
-                      text: csvFieldValue,
-                    }
-                  : {
-                      source: TABLE,
-                      columnNumber: csvFieldValue,
-                    }
+    this.setState((prevState) => {
+      const partialState = {};
+      partialState.availableFieldsState = prevState.availableFieldsState.map(
+        (element, i) => ((i === index)
+          ? Object.assign({}, element, updates.state)
+          : element),
+      );
+      if (typeof updates.selectedIndex !== 'undefined') {
+        const csvFieldValue = (updates.selectedIndex === 0)
+          ? prevState.availableFieldsState[index].fieldValue
+          : updates.selectedIndex;
+        partialState.fieldMappings = [...prevState.fieldMappings];
+        partialState.fieldMappings[index] = (csvFieldValue === '')
+          ? undefined
+          : {
+            fieldName: prevState.pdfFields[index].fieldName,
+            mapping: updates.selectedIndex === 0
+              ? {
+                source: TEXT,
+                text: csvFieldValue,
               }
-        }
-        return partialState
-      })
+              : {
+                source: TABLE,
+                columnNumber: csvFieldValue,
+              },
+          };
+      }
+      return partialState;
+    });
   }
 
   render() {
@@ -144,39 +142,47 @@ export default class App extends React.Component {
       display: 'grid',
       gridTemplateColumns: `${WIDTH_OF_COLUMN} ${WIDTH_OF_COLUMN} 1fr`,
       gridTemplateRows: '1fr 9fr',
-      height: '10em'
-    }
+      height: '10em',
+    };
 
     return (<div>
-      <VLHeader/>
+      <VLHeader />
       <div style={appStyle}>
         <VLButton
-          value={"Load PDF template"}
+          value={'Load PDF template'}
           onClick={this.onLoadPDFFile}
-          disabledButton={false}/>
+          disabledButton={false}
+        />
         <VLButton
-          value={"Load CSV table"}
+          value={'Load CSV table'}
           onClick={this.onLoadCSVFile}
-          disabledButton={this.state.pdfFields.length === 0}/>
+          disabledButton={this.state.pdfFields.length === 0}
+        />
         <VLButton
-          value={"Select output folder"}
+          value={'Select output folder'}
           onClick={this.onGeneratePDFs.bind(this)}
-          disabledButton={this.state.pdfTemplatePath === '' || this.state.csvFields.length === 0}/>
+          disabledButton={this.state.pdfTemplatePath === '' || this.state.csvFields.length === 0}
+        />
 
         <VLAvailableFields
           systemRequirementsStatus={this.state.systemRequirementsStatus}
           csvFields={this.state.csvFields}
           pdfFields={this.state.pdfFields}
           width={WIDTH_OF_COLUMN}
-          text={TEXT}
           setFieldMapping={this.setFieldMapping}
           availableFieldsState={this.state.availableFieldsState}
         />
 
         <div>
-          {this.state.previewSrc ?
-            <img id="pdf-preview" src={this.state.previewSrc}/> :
-            <div style={{fontSize: '10em'}}>3</div>
+          {this.state.previewSrc
+            ? <img
+              alt="Preview of PDFs generated upon completion"
+              id="pdf-preview"
+              src={this.state.previewSrc}
+            />
+            : <div style={{ fontSize: '10em' }}>
+              3
+            </div>
           }
         </div>
       </div>

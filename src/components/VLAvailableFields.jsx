@@ -1,5 +1,5 @@
-import React from 'react'
-import VLFieldMappingInput from './VLFieldMappingInput'
+import React from 'react';
+import VLFieldMappingInput from './VLFieldMappingInput';
 
 const VLAvailableFields = (props) => {
   const containerStyle = {
@@ -7,8 +7,8 @@ const VLAvailableFields = (props) => {
     display: 'grid',
     gridTemplateColumns: `${props.width} 1fr`,
     overflowY: 'auto',
-    overflowX: 'hidden'
-  }
+    overflowX: 'hidden',
+  };
 
   let placeholderFontSize = '10em';
   let placeholderText = 1;
@@ -19,35 +19,74 @@ const VLAvailableFields = (props) => {
   }
 
   return (
-    <div style={containerStyle}>
-      <div style={{display: props.pdfFields.length === 0 ? 'none' : 'grid'}}>
+    <div
+      style={containerStyle}
+    >
+      <div
+        style={{
+          display: props.pdfFields.length === 0
+            ? 'none'
+            : 'grid',
+        }}
+      >
         {props.pdfFields.map(pdfElement =>
-          <div key={`${pdfElement.fieldName}Div1`}
-            style={{overflow: "hidden"}}
-            title={pdfElement.fieldName}>{pdfElement.fieldName}
-          </div>)}
+          (
+            <div
+              title={pdfElement.fieldName}
+              key={`${pdfElement.fieldName}Div1`}
+              style={{ overflow: 'hidden' }}
+            >
+              {pdfElement.fieldName}
+            </div>
+          ),
+        )}
       </div>
-      <div style={{fontSize: placeholderFontSize,
-        display: props.pdfFields.length === 0 ? 'initial' : 'none'}}>
+      <div
+        style={{
+          fontSize: placeholderFontSize,
+          display: props.pdfFields.length === 0
+            ? 'initial'
+            : 'none',
+        }}
+      >
         {placeholderText}
       </div>
-      <div style={{display: props.csvFields.length === 0 ? 'none' : 'grid'}}>
+      <div
+        style={{
+          display: props.csvFields.length === 0
+            ? 'none'
+            : 'grid',
+        }}
+      >
         {props.pdfFields.map((pdfElement, index) =>
-          <VLFieldMappingInput
-            style={{display: props.csvFields.length === 0 ? 'none' : 'initial'}}
-            key={`${pdfElement.fieldName}Div2`}
-            text={props.text}
-            width={props.width}
-            csvFields={props.csvFields}
-            state={props.availableFieldsState[index]}
-            index={index}
-            setFieldMapping={props.setFieldMapping}/>)
-        }
+          (
+            <VLFieldMappingInput
+              key={`${pdfElement.fieldName}Div2`}
+              csvFields={props.csvFields}
+              state={props.availableFieldsState[index]}
+              index={index}
+              setFieldMapping={props.setFieldMapping}
+              style={{
+                display: props.csvFields.length === 0
+                  ? 'none'
+                  : 'initial',
+              }}
+            />
+          ),
+        )}
       </div>
-      <div style={{fontSize: '10em',
-        display: props.csvFields.length === 0 ? 'initial' : 'none'}}>2</div>
+      <div
+        style={{
+          fontSize: '10em',
+          display: props.csvFields.length === 0
+            ? 'initial'
+            : 'none',
+        }}
+      >
+        2
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default VLAvailableFields
+export default VLAvailableFields;
