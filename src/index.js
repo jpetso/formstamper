@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import console from 'console';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import { enableLiveReload } from 'electron-compile';
 import fixPath from 'fix-path';
@@ -73,7 +74,7 @@ app.on('activate', () => {
   }
 });
 
-ipcMain.on('configure-system-requirements', (event, options) => {
+ipcMain.on('configure-system-requirements', (event) => {
   // The options parameter is currently unused.
   // In the future, it could be used to supply custom
   // executable paths or particular settings.
@@ -176,13 +177,13 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
       return replacements;
     }, {});
 
-    (pdfOutputPathTemplate.match(pdfFieldNameRegex) || []).forEach(function (match) {
+    (pdfOutputPathTemplate.match(pdfFieldNameRegex) || []).forEach((match) => {
       if (fieldNameReplacements[match] !== undefined) {
         pdfOutputPathReplacements[match] = fieldNameReplacements[match];
       }
     });
 
-    (pdfOutputPathTemplate.match(csvColumnNumberRegex) || []).forEach(function (match) {
+    (pdfOutputPathTemplate.match(csvColumnNumberRegex) || []).forEach((match) => {
       pdfOutputPathReplacements[match] = [{
         source: 'table',
         columnNumber: parseInt(match.substr(2, match.length - 1), 10), // exclude '{#' and '}'
@@ -196,8 +197,7 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
   const generatedPdfs = [];
   const errors = [];
   const skipRows = 1;
-
-  let pdftkPromises = [];
+  const pdftkPromises = [];
 
   csvRows.forEach((row, index) => {
     if (index < skipRows) {
@@ -207,8 +207,8 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
 
     const concreteMappings = fieldMappings.reduce((filledFormFields, fieldMapping) => {
       if (fieldMapping.mapping.source === 'table'
-          && fieldMapping.mapping.columnNumber <= row.length)
-      {
+          && fieldMapping.mapping.columnNumber <= row.length
+          ) {
         filledFormFields[fieldMapping.fieldName] =
             row[fieldMapping.mapping.columnNumber - 1];
       }
@@ -229,7 +229,7 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
         .flatten()
         .output()
         .then((buffer) => {
-          fs.writeFile(pdfOutputPath, buffer, function (err) {
+          fs.writeFile(pdfOutputPath, buffer, (err) => {
             if (err) {
               throw err;
             }
@@ -295,7 +295,7 @@ ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
     },
   };
 
-  loadingTask.promise.then(function (pdfDocument) {
+  loadingTask.promise.then((pdfDocument) => {
     console.log('# PDF document loaded.');
 
     const pagePromises = [];
@@ -303,7 +303,7 @@ ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
     const fieldsByName = {};
     const fieldNames = [];
 
-    for (let i = 1; i <= pdfDocument.numPages; i++) {
+    for (let i = 1; i <= pdfDocument.numPages; ++i) {
       pagePromises.push(pdfDocument.getPage(i).then((page) => {
         annotationPromises.push(page.getAnnotations().then((annotations) => {
           annotations.forEach((ann) => {
@@ -354,23 +354,23 @@ ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
             }, []));
       });
     });
-  }).catch(function (reason) {
+  }).catch((reason) => {
     console.log(reason);
   });
 });
 
 ipcMain.on('load-csv', (event, csvPath) => {
-  let context = this;
-  let rows = [];
-  let filestream = fs.createReadStream(csvPath)
+  const rows = [];
+
+  fs.createReadStream(csvPath)
     .pipe(parse())
-    .on('data', function (row) {
+    .on('data', (row) => {
       rows.push(row);
     })
-    .on('error', function (err) {
+    .on('error', (err) => {
       dialog.showErrorBox(`CSV loading error${err.message}`);
     })
-    .on('end', function () {
+    .on('end', () => {
       const fields = rows[0].map((field, index) => ({
         columnNumber: index + 1,
         fieldName: field,

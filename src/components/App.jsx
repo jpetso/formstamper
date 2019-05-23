@@ -59,7 +59,7 @@ export default class App extends React.Component {
       this.setState({ previewSrc: imgsrc });
     });
 
-    ipcRenderer.send('configure-system-requirements', {});
+    ipcRenderer.send('configure-system-requirements');
   }
 
   static onLoadPDFFile() {
