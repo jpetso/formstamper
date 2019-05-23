@@ -17,9 +17,9 @@ const VLFieldMappingInput = (props) => {
     props.setFieldMapping(
       props.index,
       {
-        selectedIndex: selectedIndex,
+        selectedIndex,
         state: {
-          selectedIndex: selectedIndex,
+          selectedIndex,
           canEdit: selectedIndex === 0,
         },
       },
