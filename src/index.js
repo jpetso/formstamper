@@ -253,7 +253,7 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
         }));
   });
 
-  Promise.all(pdftkPromises, () => {
+  Promise.all(pdftkPromises).then(() => {
     event.sender.send('pdf-generation-finished', generatedPdfs, errors);
   });
 });
