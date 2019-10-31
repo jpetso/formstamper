@@ -50,7 +50,7 @@
     "@hot-loader/react-dom": "npm:@hot-loader/react-dom@^16.8.3",
     "canvas": "^2.3.1",
     "command-exists": "^1.2.8",
-    "csv-parse": "^4.3.3",
+    "csv-parse": "^4.4.6",
     "electron-compile": "^6.4.4",
     "electron-devtools-installer": "^2.1.0",
     "electron-squirrel-startup": "^1.0.0",
