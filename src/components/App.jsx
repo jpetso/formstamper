@@ -14,6 +14,8 @@ export default class App extends React.Component {
   constructor(props) {
     super(props);
     this.onGeneratePDFs = this.onGeneratePDFs.bind(this);
+    this.onLoadPDFFile = this.onLoadPDFFile.bind(this);
+    this.onLoadCSVFile = this.onLoadCSVFile.bind(this);
     this.setFieldMapping = this.setFieldMapping.bind(this);
     this.state = {
       systemRequirementsStatus: {},
@@ -25,7 +27,7 @@ export default class App extends React.Component {
       availableFieldsState: [],
     };
 
-    const mapPdfFieldsToAvailableFields = element => ({
+    const mapPdfFieldsToAvailableFields = (element) => ({
       canEdit: true,
       isEditingCustomValue: false,
       fieldValue: element.fieldValue,
@@ -48,22 +50,22 @@ export default class App extends React.Component {
     });
 
     ipcRenderer.on('csv-fields-available', (event, csvPath, fields) => {
-      this.setState(prevState => ({
+      this.setState((prevState) => ({
         csvFields: fields,
         fieldMappings: [],
         availableFieldsState: prevState.pdfFields.map(mapPdfFieldsToAvailableFields),
       }));
     });
 
-    ipcRenderer.on('pdf-preview-updated', (event, pdfTemplatePath, imgsrc) => {
-      this.setState({ previewSrc: imgsrc });
+    ipcRenderer.on('pdf-preview-updated', (event, pdfTemplatePath, pdfSrc) => {
+      this.setState({ previewSrc: pdfSrc });
     });
 
     ipcRenderer.send('configure-system-requirements');
   }
 
-  static onLoadPDFFile() {
-    const filenames = dialog.showOpenDialog({
+  onLoadPDFFile() {
+    const filenames = dialog.showOpenDialogSync({
       properties: ['openFile'],
       filters: [
         { name: 'PDF files', extensions: ['pdf'] },
@@ -74,11 +76,14 @@ export default class App extends React.Component {
       return;
     }
 
+    const pdfTemplatePath = filenames[0];
+    console.log('Loading PDF template:' + pdfTemplatePath);
+
     ipcRenderer.send('load-pdf-template', filenames[0]);
   }
 
-  static onLoadCSVFile() {
-    const filenames = dialog.showOpenDialog({
+  onLoadCSVFile() {
+    const filenames = dialog.showOpenDialogSync({
       properties: ['openFile'],
       filters: [
         { name: 'CSV files', extensions: ['csv'] },
@@ -89,17 +94,24 @@ export default class App extends React.Component {
       return;
     }
 
+    console.log('Loading CSV file:' + filenames[0]);
     ipcRenderer.send('load-csv', filenames[0]);
   }
 
   onGeneratePDFs() {
-    const dirnames = dialog.showOpenDialog({ properties: ['openDirectory'] });
+    const dirnames = dialog.showOpenDialogSync({ properties: ['openDirectory'] });
     if (!Array.isArray(dirnames) || dirnames.length !== 1) {
       return;
     }
 
+    const pdfOutputPathTemplate =
+      `${dirnames[0]}${path.sep}Tax Receipt {@TR_NUMBER} - {@NAME}.pdf`;
+
+    console.log('Generating filled PDFs: ' + this.state.pdfTemplatePath);
+    console.log('Output PDF file path template: ' + pdfOutputPathTemplate);
+
     ipcRenderer.send('generate-pdfs', this.state.pdfTemplatePath,
-        `${dirnames[0]}${path.sep}Tax Receipt {@TR_NUMBER} - {@NAME}.pdf`,
+        pdfOutputPathTemplate,
         this.state.fieldMappings.filter(element => typeof element !== 'undefined'));
   }
 
@@ -148,12 +160,12 @@ export default class App extends React.Component {
       <div style={appStyle}>
         <VLButton
           value={'Load PDF template'}
-          onClick={App.onLoadPDFFile}
+          onClick={this.onLoadPDFFile}
           disabledButton={false}
         />
         <VLButton
           value={'Load CSV table'}
-          onClick={App.onLoadCSVFile}
+          onClick={this.onLoadCSVFile}
           disabledButton={this.state.pdfFields.length === 0}
         />
         <VLButton
@@ -173,7 +185,7 @@ export default class App extends React.Component {
 
         <div>
           {this.state.previewSrc
-            ? <img
+            ? <iframe
               alt="Preview of PDFs generated upon completion"
               id="pdf-preview"
               src={this.state.previewSrc}

@@ -1,55 +1,35 @@
 import console from 'console';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
-import { enableLiveReload } from 'electron-compile';
 import fixPath from 'fix-path';
 import commandExists from 'command-exists';
 import systeminformation from 'systeminformation';
 import fs from 'fs';
 import parse from 'csv-parse';
-import pdfjsLib from 'pdfjs-dist';
 import pdftk from 'node-pdftk';
-import Canvas from 'canvas';
-import assert from 'assert';
 
-// Try to fix process.env.PATH on macOS, given command-exist's reliance on it.
-fixPath();
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
+  app.quit();
+}
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
-let mainWindow;
-
-// Keep the actual CSV data with the main process, as global state.
-// It will be updated on receiving a 'load-csv' event.
-let csvRows = [];
-
-const isDevMode = process.execPath.match(/[\\/]electron/);
-
-if (isDevMode) enableLiveReload({ strategy: 'react-hmr' });
-
-const createWindow = async () => {
+const createWindow = () => {
   // Create the browser window.
-  mainWindow = new BrowserWindow({
+  const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    webPreferences: {
+      nodeIntegration: true
+    }
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL(`file://${__dirname}/index.html`);
+  mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
+  installExtension(REACT_DEVELOPER_TOOLS);
 
   // Open the DevTools.
-  if (isDevMode) {
-    await installExtension(REACT_DEVELOPER_TOOLS);
-    mainWindow.webContents.openDevTools();
-  }
-
-  // Emitted when the window is closed.
-  mainWindow.on('closed', () => {
-    // Dereference the window object, usually you would store windows
-    // in an array if your app supports multi windows, this is the time
-    // when you should delete the corresponding element.
-    mainWindow = null;
-  });
+  mainWindow.webContents.openDevTools();
 };
 
 // This method will be called when Electron has finished
@@ -57,10 +37,10 @@ const createWindow = async () => {
 // Some APIs can only be used after this event occurs.
 app.on('ready', createWindow);
 
-// Quit when all windows are closed.
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -69,10 +49,20 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (mainWindow === null) {
+  if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
+
+// In this file you can include the rest of your app's specific main process
+// code. You can also put them in separate files and import them here.
+
+// Try to fix process.env.PATH on macOS, given command-exist's reliance on it.
+fixPath();
+
+// Keep the actual CSV data with the main process, as global state.
+// It will be updated on receiving a 'load-csv' event.
+let csvRows = [];
 
 ipcMain.on('configure-system-requirements', (event) => {
   // The options parameter is currently unused.
@@ -97,6 +87,7 @@ ipcMain.on('configure-system-requirements', (event) => {
     console.log(status.os);
   }).catch((error) => {
     console.log('Couldn\'t retrieve OS info.');
+    console.log(error);
     status.os = {};
   }));
 
@@ -122,24 +113,24 @@ ipcMain.on('configure-system-requirements', (event) => {
 function replaceOutputPathTokens(outputPathTemplate, outputPathReplacements, row) {
   const replacementStringPairs = {};
 
-  for (const replacedString in outputPathReplacements) {
+  Object.keys(outputPathReplacements).forEach((replacedString) => {
     replacementStringPairs[replacedString] =
         outputPathReplacements[replacedString].reduce((replacementString, mapping) => {
           if (mapping.source === 'table' && mapping.columnNumber <= row.length) {
             return replacementString + row[mapping.columnNumber - 1];
           }
-          else if (mapping.source === 'text') {
+          if (mapping.source === 'text') {
             return replacementString + mapping.text;
           }
           return `${replacementString}@@@`;
         }, '');
-  }
+  });
 
   let outputPath = outputPathTemplate;
 
-  for (const replaced in replacementStringPairs) {
+  Object.keys(replacementStringPairs).forEach((replaced) => {
     outputPath = outputPath.replace(replaced, replacementStringPairs[replaced]);
-  }
+  });
 
   return outputPath;
 }
@@ -207,8 +198,8 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
 
     const concreteMappings = fieldMappings.reduce((filledFormFields, fieldMapping) => {
       if (fieldMapping.mapping.source === 'table'
-          && fieldMapping.mapping.columnNumber <= row.length
-          ) {
+        && fieldMapping.mapping.columnNumber <= row.length
+      ) {
         filledFormFields[fieldMapping.fieldName] =
             row[fieldMapping.mapping.columnNumber - 1];
       }
@@ -219,38 +210,38 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
     }, {});
 
     const pdfOutputPath = replaceOutputPathTokens(
-        pdfOutputPathTemplate, pdfOutputPathReplacements, row);
+      pdfOutputPathTemplate, pdfOutputPathReplacements, row);
 
     console.log(`Storing PDF for row #${rowNumber} as ${pdfOutputPath}.`);
     console.log(concreteMappings);
 
     pdftkPromises.push(pdftk.input(pdfTemplatePath)
-        .fillForm(concreteMappings)
-        .flatten()
-        .output()
-        .then((buffer) => {
-          fs.writeFile(pdfOutputPath, buffer, (err) => {
-            if (err) {
-              throw err;
-            }
-            generatedPdfs.push({
-              pdfOutputPath,
-              rowNumber,
-            });
-            console.log(`Stored PDF for row #${rowNumber} as ${pdfOutputPath}`);
-          });
-        })
-        .catch((err) => {
-          errors.push({
+      .fillForm(concreteMappings)
+      .flatten()
+      .output()
+      .then((buffer) => {
+        fs.writeFile(pdfOutputPath, buffer, (err) => {
+          if (err) {
+            throw err;
+          }
+          generatedPdfs.push({
             pdfOutputPath,
-            type: 'Exception',
-            name: err.name,
-            message: err.message,
             rowNumber,
-            row,
           });
-          console.log(`Error: ${err.name}: ${err.message}`);
-        }));
+          console.log(`Stored PDF for row #${rowNumber} as ${pdfOutputPath}`);
+        });
+      })
+      .catch((err) => {
+        errors.push({
+          pdfOutputPath,
+          type: 'Exception',
+          name: err.name,
+          message: err.message,
+          rowNumber,
+          row,
+        });
+        console.log(`Error: ${err.name}: ${err.message}`);
+      }));
   });
 
   Promise.all(pdftkPromises).then(() => {
@@ -261,102 +252,34 @@ ipcMain.on('generate-pdfs', (event, pdfTemplatePath, pdfOutputPathTemplate, fiel
 ipcMain.on('load-pdf-template', (event, pdfTemplatePath) => {
   console.log(`Loading PDF template: ${pdfTemplatePath}`);
 
-  const rawData = new Uint8Array(fs.readFileSync(pdfTemplatePath));
-  const loadingTask = pdfjsLib.getDocument(rawData);
-
-  function NodeCanvasFactory() {}
-  NodeCanvasFactory.prototype = {
-    create: function NodeCanvasFactory_create(width, height) {
-      assert(width > 0 && height > 0, 'Invalid canvas size');
-      const canvas = Canvas.createCanvas(width, height);
-      const context = canvas.getContext('2d');
-      return {
-        canvas,
-        context,
-      };
-    },
-
-    reset: function NodeCanvasFactory_reset(canvasAndContext, width, height) {
-      assert(canvasAndContext.canvas, 'Canvas is not specified');
-      assert(width > 0 && height > 0, 'Invalid canvas size');
-      canvasAndContext.canvas.width = width;
-      canvasAndContext.canvas.height = height;
-    },
-
-    destroy: function NodeCanvasFactory_destroy(canvasAndContext) {
-      assert(canvasAndContext.canvas, 'Canvas is not specified');
-
-      // Zeroing the width and height cause Firefox to release graphics
-      // resources immediately, which can greatly reduce memory consumption.
-      canvasAndContext.canvas.width = 0;
-      canvasAndContext.canvas.height = 0;
-      canvasAndContext.canvas = null;
-      canvasAndContext.context = null;
-    },
-  };
-
-  loadingTask.promise.then((pdfDocument) => {
-    console.log('# PDF document loaded.');
-
-    const pagePromises = [];
-    const annotationPromises = [];
-    const fieldsByName = {};
-    const fieldNames = [];
-
-    for (let i = 1; i <= pdfDocument.numPages; ++i) {
-      pagePromises.push(pdfDocument.getPage(i).then((page) => {
-        annotationPromises.push(page.getAnnotations().then((annotations) => {
-          annotations.forEach((ann) => {
-            if (ann.subtype !== 'Widget' || ann.readOnly) {
-              return;
-            }
-            if (fieldsByName[ann.fieldName] !== undefined) {
-              return;
-            }
-            if (ann.fieldType === 'Tx') {
-              fieldsByName[ann.fieldName] = {
-                fieldName: ann.fieldName,
-                fieldType: 'Text',
-                fieldValue: ann.fieldValue,
-                multiLine: ann.multiLine,
-                maxLength: ann.maxLen,
-              };
-              fieldNames.push(ann.fieldName);
-            }
-          });
-        }));
-
-        // Render the page on a Node canvas with 100% scale.
-        const viewport = page.getViewport(1.0);
-        const canvasFactory = new NodeCanvasFactory();
-        const canvasAndContext =
-            canvasFactory.create(viewport.width, viewport.height);
-        const renderContext = {
-          canvasContext: canvasAndContext.context,
-          viewport,
-          canvasFactory,
+  pdftk.input(pdfTemplatePath)
+    .readFormFieldValuesAsJSON()
+    .then((fieldValues) => {
+      const fields = Array.from(Object.entries(fieldValues), (fieldValue) => {
+        const [name, value] = fieldValue;
+        return {
+          fieldName: name,
+          fieldType: 'Text', // FIXME: this is an assumption, use dump_data_fields_utf8 to get real info
+          fieldValue: value,
+          // Fields that pdf.js provided but pdftk less so:
+          // multiLine: ann.multiLine,
+          // maxLength: ann.maxLen,
         };
-
-        const renderTask = page.render(renderContext);
-        renderTask.promise.then(() => {
-          // Convert the canvas to an image buffer.
-          const image = canvasAndContext.canvas.toDataURL('image/png');
-          event.sender.send('pdf-preview-updated', pdfTemplatePath, image);
-        });
-      }));
-    }
-    Promise.all(pagePromises).then(() => {
-      Promise.all(annotationPromises).then(() => {
-        event.sender.send('pdf-fields-available', pdfTemplatePath,
-            fieldNames.reduce((fields, fieldName) => {
-              fields.push(fieldsByName[fieldName]);
-              return fields;
-            }, []));
       });
+      event.sender.send('pdf-fields-available', pdfTemplatePath, fields);
+
+      pdftk.input(pdfTemplatePath)
+        .fillForm(fieldValues)
+        .flatten()
+        .output()
+        .then((pdfData) => {
+          event.sender.send('pdf-preview-updated', pdfTemplatePath,
+            `data:application/pdf;base64,${pdfData.toString('base64')}`);
+        });
+    })
+    .catch((err) => {
+      console.log(err);
     });
-  }).catch((reason) => {
-    console.log(reason);
-  });
 });
 
 ipcMain.on('load-csv', (event, csvPath) => {
@@ -379,6 +302,3 @@ ipcMain.on('load-csv', (event, csvPath) => {
       event.sender.send('csv-fields-available', csvPath, fields);
     });
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
