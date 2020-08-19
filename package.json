@@ -1,9 +1,9 @@
 {
   "name": "formstamper",
   "productName": "Formstamper",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "GUI application (using Electron) for batch filling PDF forms",
-  "main": "src/index.js",
+  "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
@@ -16,63 +16,84 @@
   "license": "MIT",
   "config": {
     "forge": {
-      "make_targets": {
-        "win32": [
-          "squirrel"
-        ],
-        "darwin": [
-          "zip"
-        ],
-        "linux": [
-          "deb",
-          "rpm"
+      "packagerConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "formstamper"
+          }
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": [
+            "darwin"
+          ]
+        },
+        {
+          "name": "@electron-forge/maker-deb",
+          "config": {}
+        },
+        {
+          "name": "@electron-forge/maker-rpm",
+          "config": {}
+        }
+      ],
+      "plugins": [
+        [
+          "@electron-forge/plugin-webpack",
+          {
+            "mainConfig": "./webpack.main.config.js",
+            "renderer": {
+              "config": "./webpack.renderer.config.js",
+              "entryPoints": [
+                {
+                  "html": "./src/index.html",
+                  "js": "./src/renderer.jsx",
+                  "name": "main_window"
+                }
+              ]
+            }
+          }
         ]
-      },
-      "electronPackagerConfig": {
-        "packageManager": "yarn"
-      },
-      "electronWinstallerConfig": {
-        "name": "formstamper"
-      },
-      "electronInstallerDebian": {},
-      "electronInstallerRedhat": {},
-      "github_repository": {
-        "owner": "jpetso",
-        "name": "formstamper"
-      },
-      "windowsStoreConfig": {
-        "packageName": "",
-        "name": "formstamper"
-      }
+      ]
     }
   },
   "dependencies": {
-    "@hot-loader/react-dom": "npm:@hot-loader/react-dom@^16.8.3",
-    "canvas": "^2.3.1",
     "command-exists": "^1.2.8",
-    "csv-parse": "^4.4.6",
-    "electron-compile": "^6.4.4",
+    "csv-parse": "^4.3.3",
     "electron-devtools-installer": "^2.1.0",
     "electron-squirrel-startup": "^1.0.0",
     "fix-path": "^2.1.0",
-    "node-pdftk": "^2.0.2",
-    "pdfjs-dist": "^2.0.943",
-    "react": "^16.8.3",
-    "react-dom": "npm:@hot-loader/react-dom@^16.8.3",
-    "react-hot-loader": "^4.7.2",
+    "node-pdftk": "jpetso/node-pdftk.git#0aee502edbdaa03f3ed7f56207a945d6c3c6c164",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
     "systeminformation": "^4.5.1"
   },
   "devDependencies": {
-    "babel-plugin-transform-async-to-generator": "^6.24.1",
-    "babel-plugin-transform-es2015-classes": "^6.24.1",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-react": "^6.24.1",
-    "electron-forge": "^5.2.4",
-    "electron-prebuilt-compile": "4.0.0",
-    "eslint": "^4",
-    "eslint-config-airbnb": "^15",
-    "eslint-plugin-import": "^2",
-    "eslint-plugin-jsx-a11y": "^5",
-    "eslint-plugin-react": "^7"
+    "@babel/core": "^7.10.4",
+    "@babel/preset-env": "^7.10.4",
+    "@babel/preset-react": "^7.10.4",
+    "@electron-forge/cli": "6.0.0-beta.52",
+    "@electron-forge/maker-deb": "6.0.0-beta.52",
+    "@electron-forge/maker-rpm": "6.0.0-beta.52",
+    "@electron-forge/maker-squirrel": "6.0.0-beta.52",
+    "@electron-forge/maker-zip": "6.0.0-beta.52",
+    "@electron-forge/plugin-webpack": "6.0.0-beta.52",
+    "@marshallofsound/webpack-asset-relocator-loader": "^0.5.0",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.3.3",
+    "babel-loader": "^8.1.0",
+    "css-loader": "^3.0.0",
+    "electron": "9.0.5",
+    "eslint": "^7.4.0",
+    "eslint-config-airbnb": "^18.2.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-jsx-a11y": "^6.3.1",
+    "eslint-plugin-react": "^7.20.3",
+    "eslint-plugin-react-hooks": "^4.0.5",
+    "node-loader": "^0.6.0",
+    "react-refresh": "^0.8.3",
+    "style-loader": "^0.23.1",
+    "worker-loader": "^2.0.0"
   }
 }
