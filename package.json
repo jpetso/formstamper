@@ -68,7 +68,7 @@
     "node-pdftk": "jpetso/node-pdftk.git#0aee502edbdaa03f3ed7f56207a945d6c3c6c164",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "systeminformation": "^4.5.1"
+    "systeminformation": "^5.3.1"
   },
   "devDependencies": {
     "@babel/core": "^7.10.4",
